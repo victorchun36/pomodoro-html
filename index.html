@@ -25,6 +25,8 @@
     .btn-press:active { transform: scale(0.9); }
     .btn-press-sm { transition: transform .1s; }
     .btn-press-sm:active { transform: scale(0.95); }
+    .preset-chip { transition: color .15s, border-color .15s; }
+    .preset-chip:hover { color: #D2613C !important; border-color: #D2613C !important; }
   </style>
 </head>
 <body>
@@ -151,6 +153,7 @@
       const [history, setHistory] = useState([]);
       const [showHistory, setShowHistory] = useState(false);
       const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const [flashKey, setFlashKey] = useState(0);
 
       const audio = useRef({ ctx:null, sources:[], masterGain:null, dropTimer:null, buffers:{} });
       const endRef = useRef(null);
@@ -165,6 +168,11 @@
       // 记录"番茄启动那一刻"的工作时长（分钟），用于历史与总时长统计，
       // 这样即使运行/暂停中改了设置，也只影响下一个番茄，不会记错当前这条。
       const activeWorkMinRef = useRef(workMin);
+
+      // 结束 effect 只依赖 [timeLeft,running]，但需要读取 mode/task/工作/休息时长的最新值。
+      // 用 ref 在每次渲染时同步，避免从过期闭包里读到旧值（原本依赖数组不全的隐患）。
+      const endMetaRef = useRef({ mode, task, workMin, breakMin });
+      endMetaRef.current = { mode, task, workMin, breakMin };
 
       const getCtx = () => {
         const a = audio.current;
@@ -247,7 +255,8 @@
 
       useEffect(()=>{
         if(running&&timeLeft===0){
-          setRunning(false);setLocked(false);stopNoise();playAlert();
+          const { mode, task, workMin, breakMin } = endMetaRef.current;
+          setRunning(false);setLocked(false);stopNoise();playAlert();setFlashKey(k=>k+1);
           if(mode==="work"){
             const now=new Date();
             const entry={date:todayStr(),time:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,min:activeWorkMinRef.current,task:task.trim()||"未命名任务"};
@@ -305,32 +314,43 @@
       return (
         <div style={{ minHeight:"100vh", width:"100%", display:"flex", justifyContent:"center", position:"relative", overflow:"hidden", background:BG, fontFamily:"system-ui,-apple-system,sans-serif" }}>
           <Clawd/>
-          <div style={{ width:"100%", maxWidth:390, display:"flex", flexDirection:"column", alignItems:"center", padding:"16px", position:"relative", zIndex:1 }}>
+          <div style={{ width:"100%", maxWidth:390, display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"16px", position:"relative", zIndex:1 }}>
 
             {/* 当前任务 */}
-            <div style={{ width:"100%", position:"relative", marginBottom:12 }}>
-              <input type="text" value={task} disabled={locked} maxLength={40} onChange={e=>setTask(e.target.value)} placeholder="输入当前任务…"
-                style={{ width:"100%", borderRadius:12, padding:"12px 16px", textAlign:"center", outline:"none", background:CARD, color:"#E8E6DF", fontSize:18, opacity:locked?0.6:1, cursor:locked?"not-allowed":"text", fontFamily:SERIF }}/>
+            <div style={{ width:"100%", position:"relative" }}>
+              <input type="text" value={task} disabled={locked} maxLength={20} onChange={e=>setTask(e.target.value)} placeholder="输入当前任务…"
+                style={{ width:"100%", borderRadius:12, padding:"12px 16px", textAlign:"center", outline:"none", border:"1px solid rgba(255,255,255,0.06)", background:CARD, color:"#E8E6DF", fontSize:18, opacity:locked?0.6:1, cursor:locked?"not-allowed":"text", fontFamily:SERIF }}/>
               {locked && <span style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)" }}><Lock size={12} color={ORANGE}/></span>}
             </div>
 
             {/* 计时圆盘 */}
             <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center", width:244, height:244, userSelect:"none" }}>
+              <style>{`
+                @keyframes disc-flash {
+                  0%      { filter: brightness(1);    }
+                  16.67%  { filter: brightness(1.28); }
+                  33.33%  { filter: brightness(1);    }
+                  50%     { filter: brightness(1.28); }
+                  66.67%  { filter: brightness(1);    }
+                  83.33%  { filter: brightness(1.28); }
+                  100%    { filter: brightness(1);    }
+                }
+              `}</style>
               <svg width="244" height="244" viewBox="0 0 244 244" style={{ position:"absolute", inset:0 }}>
-                <circle cx="122" cy="122" r={RING_R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="4"/>
-                <circle cx="122" cy="122" r={RING_R} fill="none" stroke="#FFFFFF" strokeWidth="4"
+                <circle cx="122" cy="122" r={RING_R} fill="none" stroke="rgba(210,97,60,0.08)" strokeWidth="4"/>
+                <circle cx="122" cy="122" r={RING_R} fill="none" stroke={ORANGE} strokeWidth="4"
                   strokeDasharray={RING_C} strokeDashoffset={RING_C*(1-frac)}
                   transform="translate(244 0) scale(-1 1) rotate(-90 122 122)"
-                  style={{ transition:"stroke-dashoffset .3s linear" }}/>
+                  style={{ transition:"stroke-dashoffset .3s linear", opacity:0.82 }}/>
               </svg>
-              <div style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s" }}>
+              <div key={flashKey} style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s", animation: flashKey>0 ? "disc-flash 2.85s ease-in-out" : "none" }}>
                 <div style={{ color:"#fff", fontWeight:800, fontSize:50, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums", fontFamily:SERIF }}>{fmt}</div>
                 <div style={{ color:"#fff", opacity:0.92, fontSize:16, marginTop:8, fontFamily:SERIF }}>{mode==="work"?"工作":"休息"}</div>
               </div>
             </div>
 
             {/* 模式切换 */}
-            <div style={{ display:"flex", gap:12, marginTop:16, width:"100%", opacity:locked?0.55:1, transition:"opacity .2s" }}>
+            <div style={{ display:"flex", gap:12, width:"100%", opacity:locked?0.55:1, transition:"opacity .2s" }}>
               {[["work","工作"],["break","休息"]].map(([m,label])=>(
                 <button key={m} onClick={()=>switchMode(m)} disabled={locked}
                   style={{ flex:1, padding:"8px 0", borderRadius:12, fontWeight:500, background:mode===m?ORANGE:BTN, color:mode===m?"#fff":TEXT_DIM, fontSize:15, cursor:locked?"not-allowed":"pointer", transition:"background .2s, color .2s" }}>
@@ -340,23 +360,24 @@
             </div>
 
             {/* 控制按钮 */}
-            <div style={{ display:"flex", gap:20, marginTop:16 }}>
+            <div style={{ display:"flex", gap:20 }}>
               {[
                 { onClick:togglePlay, label:running?"暂停":"开始", icon: running ? <Pause size={20}/> : <Play size={20} style={{marginLeft:2}}/> },
                 { onClick:handleResetClick, label:"重置", icon:<RotateCcw size={19}/> },
-                { onClick:toggleMute, label:muted?"取消静音":"静音", icon:muted?<VolumeX size={19}/>:<Volume2 size={19}/>, active:muted },
-              ].map(({onClick,label,icon,active},i)=>(
+                { onClick:toggleMute, label:muted?"取消静音":"静音", icon:muted?<VolumeX size={19}/>:<Volume2 size={19}/> },
+              ].map(({onClick,label,icon},i)=>(
                 <button key={i} onClick={onClick} aria-label={label} className="btn-press"
-                  style={{ width:52, height:52, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:active?ORANGE:BTN, color:active?"#fff":"#E8E6DF" }}>
+                  style={{ width:52, height:52, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:BTN, color:"#E8E6DF" }}>
                   {icon}
                 </button>
               ))}
             </div>
 
             {/* 背景音卡片 */}
-            <div style={{ width:"100%", borderRadius:16, padding:16, marginTop:16, background:CARD }}>
+            <div style={{ width:"100%", borderRadius:16, padding:16, background:CARD, border:"1px solid rgba(255,255,255,0.06)" }}>
+              {/* 第一行：左标签 + 右切换开关 */}
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
-                <span style={{ color:"#E8E6DF", fontSize:14, whiteSpace:"nowrap" }}>背景音</span>
+                <span style={{ color:"#E8E6DF", fontSize:16, fontWeight:700, whiteSpace:"nowrap" }}>背景音</span>
                 <div style={{ position:"relative", flex:1, borderRadius:12, background:BTN, height:38, maxWidth:220 }}>
                   <div style={{ position:"absolute", borderRadius:8, top:4, bottom:4, left:noiseType==="rain"?4:"calc(50% + 2px)", width:"calc(50% - 6px)", background:ORANGE, transition:"left .25s cubic-bezier(.4,0,.2,1)" }}/>
                   <div style={{ position:"absolute", inset:0, display:"flex" }}>
@@ -365,39 +386,48 @@
                   </div>
                 </div>
               </div>
+              {/* 第二行：喇叭 + 滑块 */}
               <div style={{ display:"flex", alignItems:"center", gap:12, marginTop:12 }}>
-                <span style={{ color:TEXT_DIM, fontSize:13, whiteSpace:"nowrap" }}>音量</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={TEXT_DIM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  {volume > 0 && <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>}
+                  {volume > 0.33 && <path d="M18.07 5.93a9 9 0 0 1 0 12.14"/>}
+                  {volume > 0.66 && <path d="M20.6 3.4a13 13 0 0 1 0 17.2"/>}
+                </svg>
                 <input type="range" min="0" max="1" step="0.01" value={volume} onChange={e=>setVolume(parseFloat(e.target.value))}
                   style={{ width:"100%", accentColor:"#fff", height:4 }}/>
               </div>
             </div>
 
             {/* 时间设置卡片 */}
-            <div style={{ width:"100%", borderRadius:16, padding:16, marginTop:12, background:CARD }}>
-              <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-                {[["25:05",25,5],["50:10",50,10],["90:20",90,20]].map(([label,w,b])=>(
-                  <button key={label} onClick={()=>applyPreset(w,b)} className="btn-press-sm"
-                    style={{ flex:1, padding:"6px 16px", borderRadius:12, fontWeight:500, background:BTN, color:"#E8E6DF", fontSize:13, cursor:"pointer", opacity:1, letterSpacing:0.5 }}>
-                    {label}
-                  </button>
-                ))}
+            <div style={{ width:"100%", borderRadius:16, padding:16, background:CARD, border:"1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                <span style={{ color:"#E8E6DF", fontSize:16, fontWeight:700, whiteSpace:"nowrap" }}>专注时长</span>
+                <div style={{ display:"flex", gap:6 }}>
+                  {[["25:5",25,5],["50:10",50,10],["90:20",90,20]].map(([label,w,b])=>(
+                    <button key={label} onClick={()=>applyPreset(w,b)} className="btn-press-sm preset-chip"
+                      style={{ padding:"3px 10px", borderRadius:20, background:"transparent", color:TEXT_DIM, fontSize:11, cursor:"pointer", border:`1px solid #3A3930`, letterSpacing:0.3, lineHeight:"18px" }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div style={{ display:"flex", gap:12 }}>
                 <div style={{ flex:1 }}>
                   <div style={{ color:TEXT_DIM, fontSize:13, marginBottom:6 }}>工作时间（分钟）</div>
                   <input type="number" min="1" max="180" value={workStr} onChange={e=>onWorkChange(e.target.value)} onBlur={()=>setWorkStr(String(workMin))}
-                    style={{ width:"100%", borderRadius:12, padding:"8px 12px", outline:"none", background:BTN, color:"#E8E6DF", fontSize:15 }}/>
+                    style={{ width:"100%", padding:"6px 4px", outline:"none", background:"transparent", color:"#E8E6DF", fontSize:15, borderBottom:"1px solid #3A3930" }}/>
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ color:TEXT_DIM, fontSize:13, marginBottom:6 }}>休息时间（分钟）</div>
                   <input type="number" min="1" max="180" value={breakStr} onChange={e=>onBreakChange(e.target.value)} onBlur={()=>setBreakStr(String(breakMin))}
-                    style={{ width:"100%", borderRadius:12, padding:"8px 12px", outline:"none", background:BTN, color:"#E8E6DF", fontSize:15 }}/>
+                    style={{ width:"100%", padding:"6px 4px", outline:"none", background:"transparent", color:"#E8E6DF", fontSize:15, borderBottom:"1px solid #3A3930" }}/>
                 </div>
               </div>
             </div>
 
             {/* 本次统计 */}
-            <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:16, padding:"0 4px" }}>
+            <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 4px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                 <span style={{ fontSize:22 }}>🍠</span>
                 <div>
@@ -412,10 +442,10 @@
             </div>
 
             {/* 历史记录 */}
-            <div style={{ width:"100%", borderRadius:16, marginTop:12, marginBottom:16, background:CARD }}>
+            <div style={{ width:"100%", borderRadius:16, background:CARD, border:"1px solid rgba(255,255,255,0.06)" }}>
               <button onClick={()=>{playClick();setShowHistory(s=>!s);}}
                 style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", color:"#E8E6DF", fontSize:14, background:"transparent" }}>
-                <span>历史记录</span>
+                <span style={{ fontWeight:700, fontSize:16 }}>历史记录</span>
                 {showHistory ? <ChevronUp size={17} color={TEXT_DIM}/> : <ChevronDown size={17} color={TEXT_DIM}/>}
               </button>
               {showHistory && (
@@ -428,7 +458,7 @@
                         {history.map((h,i)=>(
                           <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"8px 0", borderTop:i===0?"none":`1px solid ${BTN}` }}>
                             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minWidth:44 }}>
-                              <span style={{ color:"#E8E6DF", fontSize:28, fontWeight:800, lineHeight:1 }}>{fmtDuration(h.min)}</span>
+                              <span style={{ color:"#E8E6DF", fontSize:20, fontWeight:800, lineHeight:1 }}>{fmtDuration(h.min)}</span>
                             </div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ color:"#E8E6DF", fontSize:13, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.task}</div>
@@ -451,7 +481,7 @@
           {/* 重置确认弹窗 */}
           {showResetConfirm && (
             <div onClick={cancelReset} style={{ position:"fixed", inset:0, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.55)", zIndex:1000 }}>
-              <div onClick={e=>e.stopPropagation()} style={{ borderRadius:16, padding:24, display:"flex", flexDirection:"column", alignItems:"center", gap:16, background:CARD, width:280, boxShadow:"0 8px 40px rgba(0,0,0,0.5)" }}>
+              <div onClick={e=>e.stopPropagation()} style={{ borderRadius:16, padding:24, display:"flex", flexDirection:"column", alignItems:"center", gap:16, background:CARD, width:280, border:"1px solid rgba(255,255,255,0.06)", boxShadow:"0 8px 40px rgba(0,0,0,0.5)" }}>
                 <div style={{ fontSize:32 }}>⏱️</div>
                 <div style={{ textAlign:"center" }}>
                   <div style={{ color:"#E8E6DF", fontWeight:700, fontSize:16, marginBottom:6 }}>确定要重置吗？</div>

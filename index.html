@@ -375,7 +375,7 @@
             {/* 时间设置卡片 */}
             <div style={{ width:"100%", borderRadius:16, padding:16, marginTop:12, background:CARD }}>
               <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-                {[["25:5",25,5],["50:10",50,10],["90:20",90,20]].map(([label,w,b])=>(
+                {[["25:05",25,5],["50:10",50,10],["90:20",90,20]].map(([label,w,b])=>(
                   <button key={label} onClick={()=>applyPreset(w,b)} className="btn-press-sm"
                     style={{ flex:1, padding:"6px 16px", borderRadius:12, fontWeight:500, background:BTN, color:"#E8E6DF", fontSize:13, cursor:"pointer", opacity:1, letterSpacing:0.5 }}>
                     {label}

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍠</text></svg>" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>番薯钟</title>
@@ -9,12 +8,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #1C1B17; min-height: 100vh; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: radial-gradient(135% 95% at 50% -12%, #2A2820 0%, #1C1B17 56%) fixed; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", system-ui, sans-serif; }
     button, input, textarea, select { font-family: inherit; }
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -39,7 +35,9 @@
     const CARD = "#27261F";
     const BTN = "#2F2E27";
     const TEXT_DIM = "#8E8C84";
-    const SERIF = "'Noto Serif SC', serif"; // 仅用于大字/主角元素，其余走系统无衬线
+    const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", system-ui, sans-serif';
+    // 毛玻璃材质：半透明 + 背景模糊，叠在淡渐变之上形成层次
+    const glass = { background:"rgba(38,37,30,0.5)", backdropFilter:"blur(20px) saturate(120%)", WebkitBackdropFilter:"blur(20px) saturate(120%)", border:"1px solid rgba(255,255,255,0.08)" };
     const RING_R = 116;
     const RING_C = 2 * Math.PI * RING_R;
 
@@ -159,6 +157,7 @@
       const endRef = useRef(null);
       const mutedRef = useRef(muted); mutedRef.current = muted;
       const volRef = useRef(volume); volRef.current = volume;
+      const prevVolRef = useRef(0.3); // 记录点喇叭静音前的音量，便于再次点击时恢复
 
       const parseMin = (s, fb) => { const n = parseInt(s,10); return Number.isFinite(n)&&n>=1 ? Math.min(180,n) : fb; };
       const workMin = parseMin(workStr, 25);
@@ -247,6 +246,15 @@
         }catch(e){}
       };
 
+      // 系统通知：番茄/休息结束时弹出，即使切到别的标签页也能看到
+      const notify = (title, body) => {
+        try{
+          if("Notification" in window && Notification.permission==="granted"){
+            new Notification(title, { body, tag:"pomodoro", icon:"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍠</text></svg>" });
+          }
+        }catch(e){}
+      };
+
       useEffect(()=>{
         if(!running)return;
         const id=setInterval(()=>{const rem=Math.max(0,Math.ceil((endRef.current-Date.now())/1000));setTimeLeft(rem);},250);
@@ -262,9 +270,11 @@
             const entry={date:todayStr(),time:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,min:activeWorkMinRef.current,task:task.trim()||"未命名任务"};
             setCount(c=>{const n=c+1;sessionStorage.setItem("pomodoro-count",String(n));return n;});
             setHistory(h=>{const n=[entry,...h].slice(0,50);sessionStorage.setItem("pomodoro-history",JSON.stringify(n));return n;});
+            notify("🍠 番薯钟","工作时间结束，休息一下吧");
             // 工作结束 → 自动切到休息（只切换模式与时长，不自动开始）
             setMode("break");const bd=breakMin*60;setTimeLeft(bd);setTotal(bd);
           } else {
+            notify("🍠 番薯钟","休息结束，开始下一个番薯钟");
             // 休息结束 → 自动切回工作（只切换模式与时长，不自动开始）
             setMode("work");const wd=workMin*60;setTimeLeft(wd);setTotal(wd);
           }
@@ -286,6 +296,8 @@
         else{
           // 全新开始（而非暂停后继续）时，捕获本番茄启动那一刻的工作时长
           if(!locked&&mode==="work")activeWorkMinRef.current=workMin;
+          // 借用户点击"开始"这个手势，首次请求系统通知权限
+          if("Notification" in window && Notification.permission==="default"){try{Notification.requestPermission();}catch(e){}}
           const t=timeLeft===0?curDuration:timeLeft;if(timeLeft===0){setTimeLeft(curDuration);setTotal(curDuration);}endRef.current=Date.now()+t*1000;setLocked(true);setRunning(true);startNoise();
         }
       };
@@ -297,6 +309,8 @@
 
       const switchMode=(m)=>{if(locked)return;playClick();if(m===mode)return;setRunning(false);stopNoise();setMode(m);const dur=(m==="work"?workMin:breakMin)*60;setTimeLeft(dur);setTotal(dur);};
       const toggleMute=()=>{const next=!muted;setMuted(next);mutedRef.current=next;if(!next)playClick();};
+      // 点击滑块旁的小喇叭：开关式静音 —— 有音量则记下当前值并归零；为 0 则恢复到上次音量
+      const toggleSliderMute=()=>{playClick();if(volume>0){prevVolRef.current=volume;setVolume(0);}else{setVolume(prevVolRef.current>0?prevVolRef.current:0.3);}};
       const changeNoise=(t)=>{if(t===noiseType)return;playClick();setNoiseType(t);if(running)startNoise(t);};
 
       const onWorkChange=(v)=>{setWorkStr(v);const n=parseInt(v,10);if(!locked&&mode==="work"&&Number.isFinite(n)&&n>=1){const s=Math.min(180,n)*60;setTimeLeft(s);setTotal(s);}};
@@ -312,28 +326,26 @@
             ChevronDown = mkIcon("ChevronDown"), ChevronUp = mkIcon("ChevronUp"), Trash2 = mkIcon("Trash2");
 
       return (
-        <div style={{ minHeight:"100vh", width:"100%", display:"flex", justifyContent:"center", position:"relative", overflow:"hidden", background:BG, fontFamily:"system-ui,-apple-system,sans-serif" }}>
+        <div style={{ minHeight:"100vh", width:"100%", display:"flex", justifyContent:"center", position:"relative", overflow:"hidden", background:"transparent", fontFamily:FONT }}>
           <Clawd/>
           <div style={{ width:"100%", maxWidth:390, display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"16px", position:"relative", zIndex:1 }}>
 
             {/* 当前任务 */}
             <div style={{ width:"100%", position:"relative" }}>
-              <input type="text" value={task} disabled={locked} maxLength={20} onChange={e=>setTask(e.target.value)} placeholder="输入当前任务…"
-                style={{ width:"100%", borderRadius:12, padding:"12px 16px", textAlign:"center", outline:"none", border:"1px solid rgba(255,255,255,0.06)", background:CARD, color:"#E8E6DF", fontSize:18, opacity:locked?0.6:1, cursor:locked?"not-allowed":"text", fontFamily:SERIF }}/>
+              <input type="text" value={task} disabled={locked} maxLength={20} onChange={e=>setTask(e.target.value)} placeholder="请输入当前任务…"
+                style={{ width:"100%", borderRadius:12, padding:"12px 16px", textAlign:"center", outline:"none", ...glass, color:"#E8E6DF", fontSize:18, opacity:locked?0.6:1, cursor:locked?"not-allowed":"text", fontFamily:FONT }}/>
               {locked && <span style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)" }}><Lock size={12} color={ORANGE}/></span>}
             </div>
 
             {/* 计时圆盘 */}
             <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center", width:244, height:244, userSelect:"none" }}>
               <style>{`
-                @keyframes disc-flash {
-                  0%      { filter: brightness(1);    }
-                  16.67%  { filter: brightness(1.28); }
-                  33.33%  { filter: brightness(1);    }
-                  50%     { filter: brightness(1.28); }
-                  66.67%  { filter: brightness(1);    }
-                  83.33%  { filter: brightness(1.28); }
-                  100%    { filter: brightness(1);    }
+                @keyframes disc-pulse {
+                  0%   { transform: scale(1);    box-shadow: 0 0 0 rgba(210,97,60,0);    }
+                  20%  { transform: scale(1.05); box-shadow: 0 0 64px rgba(210,97,60,0.5); }
+                  45%  { transform: scale(1);    box-shadow: 0 0 26px rgba(210,97,60,0.22);}
+                  65%  { transform: scale(1.028);box-shadow: 0 0 46px rgba(210,97,60,0.34);}
+                  100% { transform: scale(1);    box-shadow: 0 0 0 rgba(210,97,60,0);    }
                 }
               `}</style>
               <svg width="244" height="244" viewBox="0 0 244 244" style={{ position:"absolute", inset:0 }}>
@@ -343,9 +355,8 @@
                   transform="translate(244 0) scale(-1 1) rotate(-90 122 122)"
                   style={{ transition:"stroke-dashoffset .3s linear", opacity:0.82 }}/>
               </svg>
-              <div key={flashKey} style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s", animation: flashKey>0 ? "disc-flash 2.85s ease-in-out" : "none" }}>
-                <div style={{ color:"#fff", fontWeight:800, fontSize:50, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums", fontFamily:SERIF }}>{fmt}</div>
-                <div style={{ color:"#fff", opacity:0.92, fontSize:16, marginTop:8, fontFamily:SERIF }}>{mode==="work"?"工作":"休息"}</div>
+              <div key={flashKey} style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s", animation: flashKey>0 ? "disc-pulse 1.6s cubic-bezier(0.34,1.4,0.5,1)" : "none" }}>
+                <div style={{ color:"#fff", fontWeight:500, fontSize:60, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums", fontFamily:FONT }}>{fmt}</div>
               </div>
             </div>
 
@@ -373,8 +384,23 @@
               ))}
             </div>
 
+            {/* 本次统计 */}
+            <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 4px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ fontSize:22 }}>🍠</span>
+                <div>
+                  <div style={{ color:TEXT_DIM, fontSize:11 }}>本次完成的番薯钟数</div>
+                  <div style={{ color:"#E8E6DF", fontWeight:800, fontSize:22, lineHeight:1.1, fontFamily:FONT }}>{count}</div>
+                </div>
+              </div>
+              <div style={{ textAlign:"right" }}>
+                <div style={{ color:TEXT_DIM, fontSize:11 }}>总时长</div>
+                <div style={{ color:"#E8E6DF", fontWeight:800, fontSize:22, lineHeight:1.1, whiteSpace:"nowrap", fontFamily:FONT }}>{fmtTotalCN(totalMin)}</div>
+              </div>
+            </div>
+
             {/* 背景音卡片 */}
-            <div style={{ width:"100%", borderRadius:16, padding:16, background:CARD, border:"1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ width:"100%", borderRadius:16, padding:16, ...glass }}>
               {/* 第一行：左标签 + 右切换开关 */}
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
                 <span style={{ color:"#E8E6DF", fontSize:16, fontWeight:700, whiteSpace:"nowrap" }}>背景音</span>
@@ -388,19 +414,22 @@
               </div>
               {/* 第二行：喇叭 + 滑块 */}
               <div style={{ display:"flex", alignItems:"center", gap:12, marginTop:12 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={TEXT_DIM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                  {volume > 0 && <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>}
-                  {volume > 0.33 && <path d="M18.07 5.93a9 9 0 0 1 0 12.14"/>}
-                  {volume > 0.66 && <path d="M20.6 3.4a13 13 0 0 1 0 17.2"/>}
-                </svg>
+                <button onClick={toggleSliderMute} aria-label={volume>0?"静音":"恢复音量"} className="btn-press-sm"
+                  style={{ background:"transparent", padding:0, display:"flex", alignItems:"center", flexShrink:0, lineHeight:0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={TEXT_DIM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    {volume > 0 && <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>}
+                    {volume > 0.33 && <path d="M18.07 5.93a9 9 0 0 1 0 12.14"/>}
+                    {volume > 0.66 && <path d="M20.6 3.4a13 13 0 0 1 0 17.2"/>}
+                  </svg>
+                </button>
                 <input type="range" min="0" max="1" step="0.01" value={volume} onChange={e=>setVolume(parseFloat(e.target.value))}
                   style={{ width:"100%", accentColor:"#fff", height:4 }}/>
               </div>
             </div>
 
             {/* 时间设置卡片 */}
-            <div style={{ width:"100%", borderRadius:16, padding:16, background:CARD, border:"1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ width:"100%", borderRadius:16, padding:16, ...glass }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                 <span style={{ color:"#E8E6DF", fontSize:16, fontWeight:700, whiteSpace:"nowrap" }}>专注时长</span>
                 <div style={{ display:"flex", gap:6 }}>
@@ -426,23 +455,8 @@
               </div>
             </div>
 
-            {/* 本次统计 */}
-            <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 4px" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:22 }}>🍠</span>
-                <div>
-                  <div style={{ color:TEXT_DIM, fontSize:11 }}>本次完成的番薯钟数</div>
-                  <div style={{ color:"#E8E6DF", fontWeight:800, fontSize:22, lineHeight:1.1, fontFamily:SERIF }}>{count}</div>
-                </div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ color:TEXT_DIM, fontSize:11 }}>总时长</div>
-                <div style={{ color:"#E8E6DF", fontWeight:800, fontSize:22, lineHeight:1.1, whiteSpace:"nowrap", fontFamily:SERIF }}>{fmtTotalCN(totalMin)}</div>
-              </div>
-            </div>
-
             {/* 历史记录 */}
-            <div style={{ width:"100%", borderRadius:16, background:CARD, border:"1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ width:"100%", borderRadius:16, ...glass }}>
               <button onClick={()=>{playClick();setShowHistory(s=>!s);}}
                 style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", color:"#E8E6DF", fontSize:14, background:"transparent" }}>
                 <span style={{ fontWeight:700, fontSize:16 }}>历史记录</span>

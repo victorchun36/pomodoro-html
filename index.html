@@ -9,9 +9,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #1C1B17; min-height: 100vh; }
+    body { background: #1C1B17; min-height: 100vh; font-family: 'Noto Serif SC', serif; }
+    button, input, textarea, select { font-family: inherit; }
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     input[type=range] { cursor: pointer; }
@@ -298,7 +302,7 @@
             ChevronDown = mkIcon("ChevronDown"), ChevronUp = mkIcon("ChevronUp"), Trash2 = mkIcon("Trash2");
 
       return (
-        <div style={{ minHeight:"100vh", width:"100%", display:"flex", justifyContent:"center", position:"relative", overflow:"hidden", background:BG, fontFamily:"system-ui,-apple-system,sans-serif" }}>
+        <div style={{ minHeight:"100vh", width:"100%", display:"flex", justifyContent:"center", position:"relative", overflow:"hidden", background:BG, fontFamily:"'Noto Serif SC', serif" }}>
           <Clawd/>
           <div style={{ width:"100%", maxWidth:390, display:"flex", flexDirection:"column", alignItems:"center", padding:"16px", position:"relative", zIndex:1 }}>
 
@@ -319,7 +323,7 @@
                   style={{ transition:"stroke-dashoffset .3s linear" }}/>
               </svg>
               <div style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s" }}>
-                <div style={{ color:"#fff", fontWeight:800, fontSize:50, lineHeight:1, letterSpacing:1 }}>{fmt}</div>
+                <div style={{ color:"#fff", fontWeight:800, fontSize:50, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums" }}>{fmt}</div>
                 <div style={{ color:"#fff", opacity:0.92, fontSize:16, marginTop:8 }}>{mode==="work"?"工作":"休息"}</div>
               </div>
             </div>

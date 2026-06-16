@@ -1,2022 +1,662 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>番薯钟</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍠</text></svg>" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js">
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js">
-    </script>
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background: radial-gradient(135% 95% at 50% -12%, #2A2820 0%, #1C1B17 56%) fixed;
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
-        }
-
-        button,
-        input,
-        textarea,
-        select {
-            font-family: inherit;
-        }
-
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-        }
-
-        input[type=range] {
-            cursor: pointer;
-        }
-
-        button {
-            border: none;
-            cursor: pointer;
-        }
-
-        input {
-            border: none;
-        }
-
-        .btn-press {
-            transition: transform .1s;
-        }
-        .btn-press:active {
-            transform: scale(0.9);
-        }
-        .btn-press-sm {
-            transition: transform .1s;
-        }
-        .btn-press-sm:active {
-            transform: scale(0.95);
-        }
-        .preset-chip {
-            transition: color .15s, border-color .15s;
-        }
-        .preset-chip:hover {
-            color: #D2613C !important;
-            border-color: #D2613C !important;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>番薯钟</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍠</text></svg>" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:radial-gradient(135% 95% at 50% -12%, #2A2820 0%, #1C1B17 56%) fixed;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Helvetica Neue",system-ui,sans-serif;}
+    button,input,textarea,select{font-family:inherit}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+    input[type=range]{cursor:pointer}
+    button{border:none;cursor:pointer}
+    input{border:none}
+    .btn-press{transition:transform .1s}.btn-press:active{transform:scale(.9)}
+    .btn-press-sm{transition:transform .1s}.btn-press-sm:active{transform:scale(.95)}
+    .preset-chip{transition:color .15s,border-color .15s}.preset-chip:hover{color:#D2613C!important;border-color:#D2613C!important}
+    @keyframes breathe-dot{0%,100%{transform:scale(.65);opacity:.3}50%{transform:scale(1.35);opacity:.9}}
+  </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script>
-        const {
-            useState,
-            useEffect,
-            useRef,
-            useCallback,
-            useMemo
-        } = React;
+  <div id="root"></div>
+  <script>
+    const { useState, useEffect, useRef, useCallback, useReducer, useMemo, createElement: h, Fragment } = React;
 
-        const ORANGE = "#D2613C";
-        const BG = "#1C1B17";
-        const CARD = "#27261F";
-        const BTN = "#2F2E27";
-        const TEXT_DIM = "#8E8C84";
-        const FONT =
-            '-apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", system-ui, sans-serif';
-        const glass = {
-            background: "rgba(38,37,30,0.5)",
-            backdropFilter: "blur(20px) saturate(120%)",
-            WebkitBackdropFilter: "blur(20px) saturate(120%)",
-            border: "1px solid rgba(255,255,255,0.08)"
-        };
-        const RING_R = 116;
-        const RING_C = 2 * Math.PI * RING_R;
-        const ALERT_GROUPS = [0, 1.1, 2.2];
+    /* ===================== 设计 token ===================== */
+    const COLORS = { ORANGE:"#D2613C", BG:"#1C1B17", CARD:"#27261F", BTN:"#2F2E27", TEXT_DIM:"#8E8C84", TEXT_MAIN:"#E8E6DF" };
+    const { ORANGE, CARD, BTN, TEXT_DIM, TEXT_MAIN } = COLORS;
+    const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", system-ui, sans-serif';
+    const glass = { background:"rgba(38,37,30,0.5)", backdropFilter:"blur(20px) saturate(120%)", WebkitBackdropFilter:"blur(20px) saturate(120%)", border:"1px solid rgba(255,255,255,0.08)" };
+    const RING_R = 116, RING_C = 2 * Math.PI * RING_R;
+    const ALERT_GROUPS = [0, 1.1, 2.2];
+    const PRESETS = [["25:5",25,5], ["50:10",50,10], ["90:20",90,20]];
 
-        const todayStr = () => {
-            const d = new Date();
-            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-        };
+    /* ===================== 安全存储（本地用 sessionStorage，沙箱里自动退回内存） ===================== */
+    const _mem = {};
+    const store = {
+      get(k){ try { return sessionStorage.getItem(k); } catch(e){ return (k in _mem) ? _mem[k] : null; } },
+      set(k,v){ try { sessionStorage.setItem(k,v); } catch(e){ _mem[k]=v; } },
+      remove(k){ try { sessionStorage.removeItem(k); } catch(e){ delete _mem[k]; } },
+    };
 
-        const fmtShortDate = (dateStr, timeStr) => {
-            const [, m, day] = dateStr.split("-");
-            return `${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")} ${timeStr}`;
-        };
+    /* ===================== 工具函数 ===================== */
+    const pad2 = (n) => String(n).padStart(2,"0");
+    const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
+    const fmtShortDate = (date, time) => { const [,m,d]=date.split("-"); return `${pad2(m)}-${pad2(d)} ${time}`; };
+    const fmtDuration = (min) => { if(min<60) return `${min}m`; const hh=Math.floor(min/60), r=min%60; return r===0?`${hh}h`:`${hh}h${r}m`; };
+    const fmtTotalCN = (min) => { if(min<=0) return "0分钟"; const hh=Math.floor(min/60), m=min%60; return hh===0?`${m}分钟`:m===0?`${hh}小时`:`${hh}小时${m}分钟`; };
+    const fmtMMSS = (s) => `${pad2(Math.floor(s/60))}:${pad2(s%60)}`;
+    const parseMin = (s, fb) => { const n=parseInt(s,10); return Number.isFinite(n)&&n>=1 ? Math.min(180,n) : fb; };
 
-        const fmtDuration = (min) => {
-            if (min < 60) return `${min}m`;
-            const h = Math.floor(min / 60);
-            const rem = min % 60;
-            return rem === 0 ? `${h}h` : `${h}h${rem}m`;
-        };
+    /* ===================== 图标 ===================== */
+    const ICONS = {
+      Play:[["polygon",{points:"6 3 20 12 6 21 6 3"}]],
+      Pause:[["rect",{x:"14",y:"4",width:"4",height:"16",rx:"1"}],["rect",{x:"6",y:"4",width:"4",height:"16",rx:"1"}]],
+      RotateCcw:[["path",{d:"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"}],["path",{d:"M3 3v5h5"}]],
+      Volume2:[["polygon",{points:"11 5 6 9 2 9 2 15 6 15 11 19 11 5"}],["path",{d:"M15.54 8.46a5 5 0 0 1 0 7.07"}],["path",{d:"M19.07 4.93a10 10 0 0 1 0 14.14"}]],
+      VolumeX:[["polygon",{points:"11 5 6 9 2 9 2 15 6 15 11 19 11 5"}],["line",{x1:"22",x2:"16",y1:"9",y2:"15"}],["line",{x1:"16",x2:"22",y1:"9",y2:"15"}]],
+      Lock:[["rect",{width:"18",height:"11",x:"3",y:"11",rx:"2",ry:"2"}],["path",{d:"M7 11V7a5 5 0 0 1 10 0v4"}]],
+      ChevronDown:[["path",{d:"m6 9 6 6 6-6"}]],
+      ChevronUp:[["path",{d:"m18 15-6-6-6 6"}]],
+      Trash2:[["path",{d:"M3 6h18"}],["path",{d:"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"}],["path",{d:"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"}],["line",{x1:"10",x2:"10",y1:"11",y2:"17"}],["line",{x1:"14",x2:"14",y1:"11",y2:"17"}]],
+    };
+    const Icon = ({ name, size=24, color="currentColor", style }) => {
+      const data = ICONS[name];
+      return data ? h("svg",{xmlns:"http://www.w3.org/2000/svg",width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round",style},
+        data.map(([tag,attrs],i)=>h(tag,{key:i,...attrs}))) : null;
+    };
 
-        const fmtTotalCN = (min) => {
-            if (min <= 0) return "0分钟";
-            const h = Math.floor(min / 60);
-            const m = min % 60;
-            if (h === 0) return `${m}分钟`;
-            if (m === 0) return `${h}小时`;
-            return `${h}小时${m}分钟`;
-        };
+    /* ===================== Clawd 像素蟹（嵌套结构以叠加多层 transform 动画） ===================== */
+    const Clawd = ({ isBreak=false, isUrgent=false, isCelebrating=false }) => {
+      const seed = useMemo(()=>Math.random(),[]);
+      const seed2 = useMemo(()=>Math.random(),[]);
+      const zzzDelays = useMemo(()=>[0,1.6,3.2],[]);
 
-        const ICONS = {
-            Play: [
-                ["polygon", {
-                    points: "6 3 20 12 6 21 6 3"
-                }]
-            ],
-            Pause: [
-                ["rect", {
-                    x: "14",
-                    y: "4",
-                    width: "4",
-                    height: "16",
-                    rx: "1"
-                }],
-                ["rect", {
-                    x: "6",
-                    y: "4",
-                    width: "4",
-                    height: "16",
-                    rx: "1"
-                }]
-            ],
-            RotateCcw: [
-                ["path", {
-                    d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
-                }],
-                ["path", {
-                    d: "M3 3v5h5"
-                }]
-            ],
-            Volume2: [
-                ["polygon", {
-                    points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-                }],
-                ["path", {
-                    d: "M15.54 8.46a5 5 0 0 1 0 7.07"
-                }],
-                ["path", {
-                    d: "M19.07 4.93a10 10 0 0 1 0 14.14"
-                }]
-            ],
-            VolumeX: [
-                ["polygon", {
-                    points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-                }],
-                ["line", {
-                    x1: "22",
-                    x2: "16",
-                    y1: "9",
-                    y2: "15"
-                }],
-                ["line", {
-                    x1: "16",
-                    x2: "22",
-                    y1: "9",
-                    y2: "15"
-                }]
-            ],
-            Lock: [
-                ["rect", {
-                    width: "18",
-                    height: "11",
-                    x: "3",
-                    y: "11",
-                    rx: "2",
-                    ry: "2"
-                }],
-                ["path", {
-                    d: "M7 11V7a5 5 0 0 1 10 0v4"
-                }]
-            ],
-            ChevronDown: [
-                ["path", {
-                    d: "m6 9 6 6 6-6"
-                }]
-            ],
-            ChevronUp: [
-                ["path", {
-                    d: "m18 15-6-6-6 6"
-                }]
-            ],
-            Trash2: [
-                ["path", {
-                    d: "M3 6h18"
-                }],
-                ["path", {
-                    d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
-                }],
-                ["path", {
-                    d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
-                }],
-                ["line", {
-                    x1: "10",
-                    x2: "10",
-                    y1: "11",
-                    y2: "17"
-                }],
-                ["line", {
-                    x1: "14",
-                    x2: "14",
-                    y1: "11",
-                    y2: "17"
-                }]
-            ],
-        };
-        const LucideIcon = ({
-            data,
-            size = 24,
-            color = "currentColor",
-            style
-        }) =>
-            data ? React.createElement(
-                "svg", {
-                    xmlns: "http://www.w3.org/2000/svg",
-                    width: size,
-                    height: size,
-                    viewBox: "0 0 24 24",
-                    fill: "none",
-                    stroke: color,
-                    strokeWidth: 2,
-                    strokeLinecap: "round",
-                    strokeLinejoin: "round",
-                    style
-                },
-                data.map(([tag, attrs], i) => React.createElement(tag, {
-                    key: i,
-                    ...attrs
-                }))
-            ) : null;
-        const mkIcon = (name) => (props) => React.createElement(LucideIcon, {
-            data: ICONS[name],
-            ...props
-        });
+      const cssBase = `
+        @keyframes clawd-walk{0%{transform:translateX(-90px)}100%{transform:translateX(calc(100vw + 90px))}}
+        @keyframes clawd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+        @keyframes snipL{0%{transform:rotate(0)}20%{transform:rotate(-18deg)}50%{transform:rotate(-18deg)}100%{transform:rotate(0)}}
+        @keyframes snipR{0%{transform:rotate(0)}20%{transform:rotate(18deg)}50%{transform:rotate(18deg)}100%{transform:rotate(0)}}
+        @keyframes clawd-stumble{0%{transform:rotate(0)}4%{transform:rotate(14deg)}9%{transform:rotate(-2.5deg)}14%{transform:rotate(1deg)}18%{transform:rotate(0)}100%{transform:rotate(0)}}
+        .clawd-walk{animation:clawd-walk 40s linear infinite;will-change:transform}
+        .clawd-bob{animation:clawd-bob .5s ease-in-out infinite;will-change:transform}
+        .clawd-lookback{will-change:transform}
+        .clawd-stumble{animation:clawd-stumble 13s ease-in-out infinite;animation-delay:calc(-13s * var(--seed2,0));will-change:transform}
+        .claw{transform-box:fill-box}
+        .claw-l{transform-origin:90% 85%;animation:snipL 1.3s ease-in-out infinite}
+        .claw-r{transform-origin:10% 85%;animation:snipR 1.3s ease-in-out infinite;animation-delay:.4s}
+        @keyframes blink{0%,88%,100%{transform:scaleY(1)}93%{transform:scaleY(.1)}}
+        .eye{transform-box:fill-box;transform-origin:center center;animation:blink 3.5s ease-in-out infinite}
+        @keyframes clawd-gaze-back{0%{transform:translateX(0)}5%{transform:translateX(-100%)}18%{transform:translateX(-100%)}28%{transform:translateX(0)}100%{transform:translateX(0)}}
+        .clawd-pupil{transform-box:fill-box;animation:clawd-gaze-back 9s ease-in-out infinite;animation-delay:calc(-9s * var(--seed,0))}
+        .mouth{transform-box:fill-box;transform-origin:center center}
+        @keyframes zzz-rise{0%{opacity:0;transform:translateY(8px) scale(.45)}16%{opacity:.5;transform:translateY(-1px) scale(.72)}100%{opacity:0;transform:translateY(-36px) scale(1.1)}}
+        .zzz-bubble{position:absolute;top:-28px;left:50%;transform:translateX(-50%);display:flex;gap:3px;pointer-events:none;z-index:1}
+        .zzz-char{display:inline-block;color:rgba(210,200,185,.38);font-weight:700;font-style:italic;font-family:Georgia,"Times New Roman",serif;line-height:1;animation:zzz-rise 5.2s ease-out infinite;opacity:0}
+      `;
+      const cssBreak = isBreak ? `
+        .clawd-walk{animation-duration:60s!important}
+        .clawd-bob{animation-duration:1.6s!important}
+        .claw-l{animation-duration:4.2s!important}
+        .claw-r{animation-duration:4.2s!important;animation-delay:1.3s!important}
+        .eye{animation:blink-sleepy 7s ease-in-out infinite!important}
+        @keyframes blink-sleepy{0%,55%,100%{transform:scaleY(0)}62%,68%{transform:scaleY(1)}75%,100%{transform:scaleY(0)}}
+        .mouth{animation:yawn-mouth 7s ease-in-out infinite}
+        @keyframes yawn-mouth{0%,45%,82%,100%{transform:scaleY(1)}58%,68%{transform:scaleY(3.2)}}
+      ` : `.eye{animation:blink 3.5s ease-in-out infinite!important}.mouth{animation:none}.zzz-bubble{display:none}`;
+      const cssUrgent = isUrgent ? `
+        .clawd-walk{animation-duration:22s!important}
+        .clawd-bob{animation-duration:.28s!important}
+        .claw-l{animation-duration:.55s!important}
+        .claw-r{animation-duration:.55s!important;animation-delay:.15s!important}
+        @keyframes blink-wide{0%,85%,100%{transform:scaleY(1.25)}90%{transform:scaleY(.1)}}
+        .eye{animation:blink-wide 2.2s ease-in-out infinite!important}
+        .clawd-pupil{animation-duration:4s!important}
+      ` : ``;
+      const cssCelebrate = isCelebrating ? `
+        @keyframes celebrate-jump{0%{transform:translateY(0) rotate(0)}20%{transform:translateY(-22px) rotate(-6deg)}40%{transform:translateY(-24px) rotate(6deg)}60%{transform:translateY(-14px) rotate(-3deg)}80%{transform:translateY(-6px) rotate(2deg)}100%{transform:translateY(0) rotate(0)}}
+        .clawd-bob{animation:celebrate-jump .38s ease-out 4!important}
+        .claw-l{animation-duration:.3s!important}
+        .claw-r{animation-duration:.3s!important;animation-delay:.08s!important}
+      ` : ``;
 
-        const Clawd = ({
-            isBreak = false,
-            isUrgent = false,
-            isCelebrating = false
-        }) => {
-            const seed = useMemo(() => Math.random(), []);
-            const seed2 = useMemo(() => Math.random(), []);
-            const zzzDelays = useMemo(() => [0, 1.6, 3.2], []);
-
-            const cssBase = `
-          @keyframes clawd-walk {
-            0% { transform: translateX(-90px); }
-            100% { transform: translateX(calc(100vw + 90px)); }
-          }
-          @keyframes clawd-bob {
-            0%,100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-          }
-          @keyframes snipL {
-            0%   { transform: rotate(0deg); }
-            20%  { transform: rotate(-18deg); }
-            50%  { transform: rotate(-18deg); }
-            100% { transform: rotate(0deg); }
-          }
-          @keyframes snipR {
-            0%   { transform: rotate(0deg); }
-            20%  { transform: rotate(18deg); }
-            50%  { transform: rotate(18deg); }
-            100% { transform: rotate(0deg); }
-          }
-          @keyframes clawd-lookback {
-            0%   { transform: rotate(0deg); }
-            5%   { transform: rotate(-18deg); }
-            18%  { transform: rotate(-18deg); }
-            28%  { transform: rotate(0deg); }
-            100% { transform: rotate(0deg); }
-          }
-          @keyframes clawd-stumble {
-            0%   { transform: rotate(0deg); }
-            4%   { transform: rotate(14deg); }
-            9%   { transform: rotate(-2.5deg); }
-            14%  { transform: rotate(1deg); }
-            18%  { transform: rotate(0deg); }
-            100% { transform: rotate(0deg); }
-          }
-          .clawd-walk {
-            animation: clawd-walk 40s linear infinite;
-            will-change: transform;
-          }
-          .clawd-bob {
-            animation: clawd-bob 0.5s ease-in-out infinite;
-            will-change: transform;
-          }
-          .clawd-lookback {
-            animation: none;
-            will-change: transform;
-          }
-          .clawd-stumble {
-            animation: clawd-stumble 13s ease-in-out infinite;
-            animation-delay: calc(-13s * var(--seed2, 0));
-            will-change: transform;
-          }
-          .claw {
-            transform-box: fill-box;
-          }
-          .claw-l {
-            transform-origin: 90% 85%;
-            animation: snipL 1.3s ease-in-out infinite;
-          }
-          .claw-r {
-            transform-origin: 10% 85%;
-            animation: snipR 1.3s ease-in-out infinite;
-            animation-delay: 0.4s;
-          }
-          @keyframes blink {
-            0%, 88%, 100% { transform: scaleY(1); }
-            93%           { transform: scaleY(0.1); }
-          }
-          .eye {
-            transform-box: fill-box;
-            transform-origin: center center;
-            animation: blink 3.5s ease-in-out infinite;
-          }
-          @keyframes clawd-gaze-back {
-            0%   { transform: translateX(0); }
-            5%   { transform: translateX(-100%); }
-            18%  { transform: translateX(-100%); }
-            28%  { transform: translateX(0); }
-            100% { transform: translateX(0); }
-          }
-          .clawd-pupil {
-            transform-box: fill-box;
-            animation: clawd-gaze-back 9s ease-in-out infinite;
-            animation-delay: calc(-9s * var(--seed, 0));
-          }
-          .mouth {
-            transform-box: fill-box;
-            transform-origin: center center;
-          }
-          @keyframes zzz-rise {
-            0%   { opacity: 0; transform: translateY(8px) scale(0.45); }
-            16%  { opacity: 0.5; transform: translateY(-1px) scale(0.72); }
-            100% { opacity: 0; transform: translateY(-36px) scale(1.1); }
-          }
-          .zzz-bubble {
-            position: absolute;
-            top: -28px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 3px;
-            pointer-events: none;
-            z-index: 1;
-          }
-          .zzz-char {
-            display: inline-block;
-            color: rgba(210,200,185,0.38);
-            font-weight: 700;
-            font-style: italic;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 13px;
-            line-height: 1;
-            animation: zzz-rise 5.2s ease-out infinite;
-            opacity: 0;
-          }
-          `;
-
-            const cssBreak = isBreak ? `
-          .clawd-walk {
-            animation-duration: 60s !important;
-          }
-          .clawd-bob {
-            animation-duration: 1.6s !important;
-          }
-          .claw-l {
-            animation-duration: 4.2s !important;
-          }
-          .claw-r {
-            animation-duration: 4.2s !important;
-            animation-delay: 1.3s !important;
-          }
-          .eye {
-            animation: blink-sleepy 7s ease-in-out infinite !important;
-          }
-          @keyframes blink-sleepy {
-            0%, 55%, 100% { transform: scaleY(0); }
-            62%, 68% { transform: scaleY(1); }
-            75%, 100% { transform: scaleY(0); }
-          }
-          .mouth {
-            animation: yawn-mouth 7s ease-in-out infinite;
-          }
-          @keyframes yawn-mouth {
-            0%, 45%, 82%, 100% { transform: scaleY(1); }
-            58%, 68%           { transform: scaleY(3.2); }
-          }
-          ` : `
-          .eye {
-            animation: blink 3.5s ease-in-out infinite !important;
-          }
-          .mouth {
-            animation: none;
-          }
-          `;
-
-            const cssUrgent = isUrgent ? `
-          .clawd-walk {
-            animation-duration: 22s !important;
-          }
-          .clawd-bob {
-            animation-duration: 0.28s !important;
-          }
-          .claw-l {
-            animation-duration: 0.55s !important;
-          }
-          .claw-r {
-            animation-duration: 0.55s !important;
-            animation-delay: 0.15s !important;
-          }
-          @keyframes blink-wide {
-            0%, 85%, 100% { transform: scaleY(1.25); }
-            90%           { transform: scaleY(0.1); }
-          }
-          .eye {
-            animation: blink-wide 2.2s ease-in-out infinite !important;
-          }
-          .clawd-pupil {
-            animation-duration: 4s !important;
-          }
-          ` : ``;
-
-            const cssCelebrate = isCelebrating ? `
-          @keyframes celebrate-jump {
-            0%   { transform: translateY(0)     rotate(0deg); }
-            20%  { transform: translateY(-22px) rotate(-6deg); }
-            40%  { transform: translateY(-24px) rotate(6deg); }
-            60%  { transform: translateY(-14px) rotate(-3deg); }
-            80%  { transform: translateY(-6px)  rotate(2deg); }
-            100% { transform: translateY(0)     rotate(0deg); }
-          }
-          .clawd-bob {
-            animation: celebrate-jump 0.38s ease-out 4 !important;
-          }
-          .claw-l {
-            animation-duration: 0.3s !important;
-          }
-          .claw-r {
-            animation-duration: 0.3s !important;
-            animation-delay: 0.08s !important;
-          }
-          ` : ``;
-
-            const cssZzzHide = isBreak ? `` : `
-          .zzz-bubble { display: none; }
-          `;
-
-            const fullCSS = cssBase + cssBreak + cssUrgent + cssCelebrate + cssZzzHide;
-
-            return React.createElement(React.Fragment, null,
-                React.createElement("style", null, fullCSS),
-                React.createElement("div", {
-                        className: "clawd-walk",
-                        style: {
-                            position: "fixed",
-                            bottom: 6,
-                            left: 0,
-                            zIndex: 9999,
-                            pointerEvents: "none",
-                            opacity: 0.9
-                        }
-                    },
-                    React.createElement("div", {
-                            className: "clawd-bob"
-                        },
-                        React.createElement("div", {
-                                className: "clawd-lookback",
-                                style: {
-                                    '--seed': seed
-                                }
-                            },
-                            React.createElement("div", {
-                                    className: "clawd-stumble",
-                                    style: {
-                                        '--seed2': seed2
-                                    }
-                                },
-                                isBreak && React.createElement("div", {
-                                        className: "zzz-bubble"
-                                    },
-                                    zzzDelays.map((delay, i) =>
-                                        React.createElement("span", {
-                                            key: i,
-                                            className: "zzz-char",
-                                            style: {
-                                                animationDelay: `${delay}s`,
-                                                fontSize: `${11 + i * 2.5}px`
-                                            }
-                                        }, i === 0 ? "z" : i === 1 ? "Z" : "Z")
-                                    )
-                                ),
-                                React.createElement("svg", {
-                                    width: "78",
-                                    height: "65",
-                                    viewBox: "0 0 24 20",
-                                    shapeRendering: "crispEdges"
-                                },
-                                    React.createElement("g", {
-                                            className: "claw claw-l"
-                                        },
-                                        React.createElement("rect", {
-                                            x: "0",
-                                            y: "3",
-                                            width: "4",
-                                            height: "2",
-                                            fill: "#E2795B"
-                                        }),
-                                        React.createElement("rect", {
-                                            x: "0",
-                                            y: "6",
-                                            width: "4",
-                                            height: "1",
-                                            fill: "#E2795B"
-                                        }),
-                                        React.createElement("rect", {
-                                            x: "2",
-                                            y: "5",
-                                            width: "3",
-                                            height: "3",
-                                            fill: "#D2613C"
-                                        })
-                                    ),
-                                    React.createElement("g", {
-                                            className: "claw claw-r"
-                                        },
-                                        React.createElement("rect", {
-                                            x: "20",
-                                            y: "3",
-                                            width: "4",
-                                            height: "2",
-                                            fill: "#E2795B"
-                                        }),
-                                        React.createElement("rect", {
-                                            x: "20",
-                                            y: "6",
-                                            width: "4",
-                                            height: "1",
-                                            fill: "#E2795B"
-                                        }),
-                                        React.createElement("rect", {
-                                            x: "19",
-                                            y: "5",
-                                            width: "3",
-                                            height: "3",
-                                            fill: "#D2613C"
-                                        })
-                                    ),
-                                    React.createElement("rect", {
-                                        x: "5",
-                                        y: "7",
-                                        width: "1",
-                                        height: "2",
-                                        fill: "#C05B3F"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "18",
-                                        y: "7",
-                                        width: "1",
-                                        height: "2",
-                                        fill: "#C05B3F"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "7",
-                                        y: "8",
-                                        width: "10",
-                                        height: "1",
-                                        fill: "#E2795B"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "6",
-                                        y: "9",
-                                        width: "12",
-                                        height: "6",
-                                        fill: "#E2795B"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "7",
-                                        y: "15",
-                                        width: "10",
-                                        height: "1",
-                                        fill: "#D2613C"
-                                    }),
-                                    React.createElement("g", {
-                                            className: "eye"
-                                        },
-                                        React.createElement("rect", {
-                                            x: "9",
-                                            y: "10",
-                                            width: "2",
-                                            height: "2",
-                                            fill: "#FFFFFF"
-                                        }),
-                                        React.createElement("rect", {
-                                            className: "clawd-pupil",
-                                            x: "10",
-                                            y: "11",
-                                            width: "1",
-                                            height: "1",
-                                            fill: "#1C1B17"
-                                        })
-                                    ),
-                                    React.createElement("g", {
-                                            className: "eye"
-                                        },
-                                        React.createElement("rect", {
-                                            x: "13",
-                                            y: "10",
-                                            width: "2",
-                                            height: "2",
-                                            fill: "#FFFFFF"
-                                        }),
-                                        React.createElement("rect", {
-                                            className: "clawd-pupil",
-                                            x: "14",
-                                            y: "11",
-                                            width: "1",
-                                            height: "1",
-                                            fill: "#1C1B17"
-                                        })
-                                    ),
-                                    React.createElement("rect", {
-                                        x: "11",
-                                        y: "13",
-                                        width: "2",
-                                        height: "1",
-                                        fill: "#C05B3F",
-                                        className: "mouth"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "7",
-                                        y: "16",
-                                        width: "1",
-                                        height: "2",
-                                        fill: "#C05B3F"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "10",
-                                        y: "16",
-                                        width: "1",
-                                        height: "2",
-                                        fill: "#C05B3F"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "13",
-                                        y: "16",
-                                        width: "1",
-                                        height: "2",
-                                        fill: "#C05B3F"
-                                    }),
-                                    React.createElement("rect", {
-                                        x: "16",
-                                        y: "16",
-                                        width: "1",
-                                        height: "2",
-                                        fill: "#C05B3F"
-                                    })
-                                )
-                            )
-                        )
-                    )
-                )
-            );
-        };
-
-        const playTone = (ctx, t, dest, freq, gainStart, gainEnd, rampDur, stopDur) => {
-            const o = ctx.createOscillator();
-            o.type = "sine";
-            o.frequency.value = freq;
-            const g = ctx.createGain();
-            g.gain.setValueAtTime(gainStart, t);
-            g.gain.exponentialRampToValueAtTime(gainEnd, t + rampDur);
-            o.connect(g);
-            g.connect(dest);
-            o.start(t);
-            o.stop(t + stopDur);
-        };
-
-        function PomodoroApp() {
-            const [mode, setMode] = useState("work");
-            const [workStr, setWorkStr] = useState("25");
-            const [breakStr, setBreakStr] = useState("5");
-            const [timeLeft, setTimeLeft] = useState(25 * 60);
-            const [total, setTotal] = useState(25 * 60);
-            const setDuration = useCallback((s) => { setTimeLeft(s); setTotal(s); }, []);
-            const [running, setRunning] = useState(false);
-            const [locked, setLocked] = useState(false);
-            const [muted, setMuted] = useState(false);
-            const [volume, setVolume] = useState(0.3);
-            const [noiseType, setNoiseType] = useState("rain");
-            const [count, setCount] = useState(0);
-            const [task, setTask] = useState("");
-            const [history, setHistory] = useState([]);
-            const [showHistory, setShowHistory] = useState(false);
-            const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [flashId, setFlashId] = useState(0);
-            const [showPlusOne, setShowPlusOne] = useState(false);
-            const [isUrgent, setIsUrgent] = useState(false);
-            const [isCelebrating, setIsCelebrating] = useState(false);
-
-            const audio = useRef({
-                ctx: null,
-                sources: [],
-                masterGain: null,
-                dropTimer: null,
-                buffers: {},
-                noiseId: 0
-            });
-            const endRef = useRef(null);
-            const mutedRef = useRef(muted);
-            mutedRef.current = muted;
-            const volRef = useRef(volume);
-            volRef.current = volume;
-            const modeRef = useRef(mode);
-            modeRef.current = mode;
-
-            const prevVolRef = useRef(0.3);
-
-            const parseMin = (s, fb) => {
-                const n = parseInt(s, 10);
-                return Number.isFinite(n) && n >= 1 ? Math.min(180, n) : fb;
-            };
-            const workMin = parseMin(workStr, 25);
-            const breakMin = parseMin(breakStr, 5);
-            const curDuration = (mode === "work" ? workMin : breakMin) * 60;
-
-            const activeWorkMinRef = useRef(workMin);
-            const endMetaRef = useRef({
-                mode,
-                task,
-                workMin,
-                breakMin
-            });
-            endMetaRef.current = {
-                mode,
-                task,
-                workMin,
-                breakMin
-            };
-
-            const getCtx = useCallback(() => {
-                const a = audio.current;
-                if (!a.ctx) a.ctx = new(window.AudioContext || window.webkitAudioContext)();
-                if (a.ctx.state === "suspended") a.ctx.resume().catch(() => {});
-                return a.ctx;
-            }, []);
-
-            const ensureCtx = useCallback(async () => {
-                const ctx = getCtx();
-                if (ctx.state === "suspended") await ctx.resume();
-                return ctx;
-            }, [getCtx]);
-
-            const makeBuffer = useCallback((type) => {
-                const ctx = getCtx();
-                const len = ctx.sampleRate * 2;
-                const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-                const d = buf.getChannelData(0);
-                if (type === "white") {
-                    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-                } else if (type === "brown") {
-                    let last = 0;
-                    for (let i = 0; i < len; i++) {
-                        const w = Math.random() * 2 - 1;
-                        last = (last + 0.02 * w) / 1.02;
-                        d[i] = last * 3.5;
-                    }
-                } else {
-                    let b0 = 0,
-                        b1 = 0,
-                        b2 = 0,
-                        b3 = 0,
-                        b4 = 0,
-                        b5 = 0,
-                        b6 = 0;
-                    for (let i = 0; i < len; i++) {
-                        const w = Math.random() * 2 - 1;
-                        b0 = 0.99886 * b0 + w * 0.0555179;
-                        b1 = 0.99332 * b1 + w * 0.0750759;
-                        b2 = 0.969 * b2 + w * 0.153852;
-                        b3 = 0.8665 * b3 + w * 0.3104856;
-                        b4 = 0.55 * b4 + w * 0.5329522;
-                        b5 = -0.7616 * b5 - w * 0.016898;
-                        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-                        b6 = w * 0.115926;
-                    }
-                }
-                return buf;
-            }, [getCtx]);
-
-            const getBuf = useCallback((t) => {
-                const a = audio.current;
-                if (!a.buffers[t]) a.buffers[t] = makeBuffer(t);
-                return a.buffers[t];
-            }, [makeBuffer]);
-
-            useEffect(() => {
-                const timer = setTimeout(() => {
-                    try {
-                        getBuf("pink");
-                        getBuf("brown");
-                        getBuf("white");
-                    } catch (e) {}
-                }, 200);
-                return () => clearTimeout(timer);
-            }, [getBuf]);
-
-            useEffect(() => {
-                const warmCtx = () => { ensureCtx().catch(() => {}); };
-                document.addEventListener('pointerdown', warmCtx, { once: true });
-                return () => document.removeEventListener('pointerdown', warmCtx);
-            }, [ensureCtx]);
-
-            const stopNoise = useCallback(() => {
-                const a = audio.current;
-                a.sources.forEach(s => {
-                    try {
-                        s.stop();
-                    } catch (e) {}
-                });
-                a.sources = [];
-                a.masterGain = null;
-                if (a.dropTimer) {
-                    clearInterval(a.dropTimer);
-                    a.dropTimer = null;
-                }
-            }, []);
-
-            const startNoise = useCallback(async (type) => {
-                if (modeRef.current === "break") return;
-                const a = audio.current;
-                const id = ++a.noiseId;
-                await ensureCtx();
-                if (id !== a.noiseId) return;
-
-                stopNoise();
-                const ctx = a.ctx;
-                const t = type || noiseType;
-                const master = ctx.createGain();
-                master.gain.value = mutedRef.current ? 0 : volRef.current;
-                master.connect(ctx.destination);
-                a.masterGain = master;
-                const loopSrc = (buf) => {
-                    const s = ctx.createBufferSource();
-                    s.buffer = buf;
-                    s.loop = true;
-                    a.sources.push(s);
-                    return s;
-                };
-                if (t === "brown") {
-                    const src = loopSrc(getBuf("brown"));
-                    src.connect(master);
-                    src.start();
-                } else {
-                    const bed = loopSrc(getBuf("pink"));
-                    const bedLp = ctx.createBiquadFilter();
-                    bedLp.type = "lowpass";
-                    bedLp.frequency.value = 1300;
-                    const bedG = ctx.createGain();
-                    bedG.gain.value = 0.9;
-                    bed.connect(bedLp);
-                    bedLp.connect(bedG);
-                    bedG.connect(master);
-                    bed.start();
-                    const hiss = loopSrc(getBuf("white"));
-                    const bp = ctx.createBiquadFilter();
-                    bp.type = "bandpass";
-                    bp.frequency.value = 5200;
-                    bp.Q.value = 0.8;
-                    const hissG = ctx.createGain();
-                    hissG.gain.value = 0.1;
-                    hiss.connect(bp);
-                    bp.connect(hissG);
-                    hissG.connect(master);
-                    hiss.start();
-                    a.dropTimer = setInterval(() => {
-                        if (!a.masterGain) return;
-                        const n = 1 + Math.floor(Math.random() * 3);
-                        for (let i = 0; i < n; i++) {
-                            const t0 = ctx.currentTime + Math.random() * 0.12;
-                            const o = ctx.createOscillator();
-                            o.type = "sine";
-                            const f = 500 + Math.random() * 2200;
-                            o.frequency.setValueAtTime(f, t0);
-                            o.frequency.exponentialRampToValueAtTime(f * 0.6, t0 + 0.06);
-                            const g = ctx.createGain();
-                            const v = 0.04 + Math.random() * 0.1;
-                            g.gain.setValueAtTime(0.0001, t0);
-                            g.gain.exponentialRampToValueAtTime(v, t0 + 0.005);
-                            g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05 + Math.random() * 0.06);
-                            o.connect(g);
-                            g.connect(a.masterGain);
-                            o.start(t0);
-                            o.stop(t0 + 0.18);
-                        }
-                    }, 130);
-                }
-            }, [noiseType, ensureCtx, stopNoise, getBuf]);
-
-            const playClick = useCallback(() => {
-                if (mutedRef.current) return;
-                try {
-                    const ctx = getCtx();
-                    const t = ctx.currentTime;
-                    const n = Math.floor(ctx.sampleRate * 0.005);
-                    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
-                    const d = buf.getChannelData(0);
-                    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 6);
-                    const src = ctx.createBufferSource();
-                    src.buffer = buf;
-                    const bp = ctx.createBiquadFilter();
-                    bp.type = "bandpass";
-                    bp.frequency.value = 4000;
-                    bp.Q.value = 1.8;
-                    const g1 = ctx.createGain();
-                    g1.gain.value = 0.7;
-                    src.connect(bp);
-                    bp.connect(g1);
-                    g1.connect(ctx.destination);
-                    src.start(t);
-                    playTone(ctx, t, ctx.destination, 3500, 0.18,  0.0001, 0.012, 0.015);
-                    playTone(ctx, t, ctx.destination, 800,  0.06,  0.0001, 0.008, 0.01);
-                } catch (e) {}
-            }, [getCtx]);
-
-            const playAlert = useCallback(() => {
-                if (mutedRef.current) return;
-                try {
-                    const ctx = getCtx();
-                    const t0 = ctx.currentTime;
-                    const beeps = ALERT_GROUPS.flatMap(t => [
-                        [880, t],
-                        [659.25, t + 0.45]
-                    ]);
-                    beeps.forEach(([f, dt]) => {
-                        const o = ctx.createOscillator();
-                        o.type = "sine";
-                        o.frequency.value = f;
-                        const g = ctx.createGain();
-                        g.gain.setValueAtTime(0.0001, t0 + dt);
-                        g.gain.exponentialRampToValueAtTime(0.4, t0 + dt + 0.02);
-                        g.gain.exponentialRampToValueAtTime(0.0005, t0 + dt + 0.6);
-                        o.connect(g);
-                        g.connect(ctx.destination);
-                        o.start(t0 + dt);
-                        o.stop(t0 + dt + 0.7);
-                    });
-                } catch (e) {}
-            }, [getCtx]);
-
-            const triggerFlashes = useCallback(() => {
-                setFlashId(id => id + 1);
-            }, []);
-
-            const notify = useCallback((title, body) => {
-                try {
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        new Notification(title, {
-                            body,
-                            tag: "pomodoro",
-                            icon: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍠</text></svg>"
-                        });
-                    }
-                } catch (e) {}
-            }, []);
-
-            useEffect(() => {
-                if (!running) return;
-                const tick = () => {
-                    const rem = Math.max(0, Math.ceil((endRef.current - Date.now()) / 1000));
-                    setTimeLeft(rem);
-                    setIsUrgent(modeRef.current === "work" && rem > 0 && rem <= 60);
-                };
-                const id = setInterval(tick, 250);
-                const handleVisibility = () => {
-                    if (document.visibilityState === 'visible') {
-                        tick();
-                    }
-                };
-                document.addEventListener('visibilitychange', handleVisibility);
-                return () => {
-                    clearInterval(id);
-                    document.removeEventListener('visibilitychange', handleVisibility);
-                };
-            }, [running]);
-
-            useEffect(() => {
-                if (running && timeLeft === 0) {
-                    const {
-                        mode,
-                        task,
-                        workMin,
-                        breakMin
-                    } = endMetaRef.current;
-                    setRunning(false);
-                    setLocked(false);
-                    setIsUrgent(false);
-                    setIsCelebrating(true);
-                    setTimeout(() => setIsCelebrating(false), 1600);
-                    stopNoise();
-                    playAlert();
-                    triggerFlashes();
-                    if (mode === "work") {
-                        const now = new Date();
-                        const entry = {
-                            date: todayStr(),
-                            time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
-                            min: activeWorkMinRef.current,
-                            task: task.trim() || "未命名任务"
-                        };
-                        setCount(c => {
-                            const n = c + 1;
-                            sessionStorage.setItem("pomodoro-count", String(n));
-                            return n;
-                        });
-                        setHistory(h => {
-                            const n = [entry, ...h].slice(0, 50);
-                            sessionStorage.setItem("pomodoro-history", JSON.stringify(n));
-                            return n;
-                        });
-                        setShowPlusOne(true);
-                        notify("🍠 番薯钟", "工作时间结束，休息一下吧");
-                        setMode("break");
-                        setDuration(breakMin * 60);
-                    } else {
-                        notify("🍠 番薯钟", "休息结束，开始下一个番薯钟");
-                        setMode("work");
-                        setDuration(workMin * 60);
-                    }
-                }
-            }, [timeLeft, running, stopNoise, playAlert, triggerFlashes, notify]);
-
-            useEffect(() => {
-                const a = audio.current;
-                if (a.masterGain) a.masterGain.gain.value = muted ? 0 : volume;
-            }, [volume, muted]);
-
-            useEffect(() => {
-                try {
-                    const c = sessionStorage.getItem("pomodoro-count");
-                    if (c !== null) setCount(parseInt(c, 10) || 0);
-                } catch (e) {}
-                try {
-                    const h = sessionStorage.getItem("pomodoro-history");
-                    if (h) setHistory(JSON.parse(h) || []);
-                } catch (e) {}
-            }, []);
-
-            const clearHistory = useCallback(() => {
-                playClick();
-                setHistory([]);
-                setCount(0);
-                sessionStorage.removeItem("pomodoro-history");
-                sessionStorage.removeItem("pomodoro-count");
-            }, [playClick]);
-
-            const togglePlay = useCallback(async () => {
-                playClick();
-                if (running) {
-                    setRunning(false);
-                    stopNoise();
-                } else {
-                    if (!locked && mode === "work") activeWorkMinRef.current = workMin;
-                    if ("Notification" in window && Notification.permission === "default") {
-                        try {
-                            Notification.requestPermission();
-                        } catch (e) {}
-                    }
-                    const t = timeLeft === 0 ? curDuration : timeLeft;
-                    if (timeLeft === 0) {
-                        setDuration(curDuration);
-                    }
-                    await startNoise();
-                    endRef.current = Date.now() + t * 1000;
-                    setLocked(true);
-                    setRunning(true);
-                }
-            }, [running, locked, mode, workMin, timeLeft, curDuration, playClick, stopNoise, startNoise]);
-
-            const reset = useCallback(() => {
-                setRunning(false);
-                setLocked(false);
-                stopNoise();
-                setDuration(curDuration);
-            }, [curDuration, stopNoise]);
-            const handleResetClick = useCallback(() => {
-                playClick();
-                setShowResetConfirm(true);
-            }, [playClick]);
-            const confirmReset = useCallback(() => {
-                playClick();
-                setShowResetConfirm(false);
-                reset();
-            }, [playClick, reset]);
-            const cancelReset = useCallback(() => {
-                playClick();
-                setShowResetConfirm(false);
-            }, [playClick]);
-
-            const switchMode = useCallback((m) => {
-                if (locked) return;
-                playClick();
-                if (m === mode) return;
-                setRunning(false);
-                stopNoise();
-                setMode(m);
-                setDuration((m === "work" ? workMin : breakMin) * 60);
-            }, [locked, mode, workMin, breakMin, playClick, stopNoise]);
-            const toggleMute = useCallback(() => {
-                const next = !muted;
-                setMuted(next);
-                mutedRef.current = next;
-                if (!next) playClick();
-            }, [muted, playClick]);
-            const toggleSliderMute = useCallback(() => {
-                playClick();
-                if (volume > 0) {
-                    prevVolRef.current = volume;
-                    setVolume(0);
-                } else {
-                    setVolume(prevVolRef.current > 0 ? prevVolRef.current : 0.3);
-                }
-            }, [volume, playClick]);
-            const changeNoise = useCallback(async (t) => {
-                if (t === noiseType) return;
-                playClick();
-                setNoiseType(t);
-                if (running) await startNoise(t);
-            }, [noiseType, running, playClick, startNoise]);
-
-            const onWorkChange = useCallback((v) => {
-                setWorkStr(v);
-                const n = parseInt(v, 10);
-                if (!locked && mode === "work" && Number.isFinite(n) && n >= 1)
-                    setDuration(Math.min(180, n) * 60);
-            }, [locked, mode, setDuration]);
-            const onBreakChange = useCallback((v) => {
-                setBreakStr(v);
-                const n = parseInt(v, 10);
-                if (!locked && mode === "break" && Number.isFinite(n) && n >= 1)
-                    setDuration(Math.min(180, n) * 60);
-            }, [locked, mode, setDuration]);
-            const applyPreset = useCallback((w, b) => {
-                playClick();
-                setWorkStr(String(w));
-                setBreakStr(String(b));
-                if (!locked) setDuration((mode === "work" ? w : b) * 60);
-            }, [locked, mode, playClick]);
-
-            const fmt =
-                `${String(Math.floor(timeLeft / 60)).padStart(2, "0")}:${String(timeLeft % 60).padStart(2, "0")}`;
-            const frac = total > 0 ? Math.max(0, Math.min(1, timeLeft / total)) : 0;
-            const totalMin = history.reduce((s, h) => s + (h.min || 0), 0);
-
-            const Play = mkIcon("Play"),
-                Pause = mkIcon("Pause"),
-                RotateCcw = mkIcon("RotateCcw"),
-                Volume2 = mkIcon("Volume2"),
-                VolumeX = mkIcon("VolumeX"),
-                Lock = mkIcon("Lock"),
-                ChevronDown = mkIcon("ChevronDown"),
-                ChevronUp = mkIcon("ChevronUp"),
-                Trash2 = mkIcon("Trash2");
-
-            return React.createElement("div", {
-                    style: {
-                        minHeight: "100vh",
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: "center",
-                        position: "relative",
-                        overflow: "hidden",
-                        background: "transparent",
-                        fontFamily: FONT
-                    }
-                },
-                React.createElement(Clawd, {
-                    isBreak: mode === "break",
-                    isUrgent: isUrgent,
-                    isCelebrating: isCelebrating,
-                }),
-                React.createElement("div", {
-                        style: {
-                            width: "100%",
-                            maxWidth: 390,
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 16,
-                            padding: "16px",
-                            position: "relative",
-                            zIndex: 1
-                        }
-                    },
-                    React.createElement("div", {
-                            style: {
-                                width: "100%",
-                                position: "relative"
-                            }
-                        },
-                        React.createElement("input", {
-                            type: "text",
-                            value: task,
-                            disabled: locked,
-                            maxLength: 20,
-                            onChange: e => setTask(e.target.value),
-                            placeholder: "请输入当前任务…",
-                            style: {
-                                width: "100%",
-                                borderRadius: 12,
-                                padding: "12px 16px",
-                                textAlign: "center",
-                                outline: "none",
-                                ...glass,
-                                color: "#E8E6DF",
-                                fontSize: 18,
-                                opacity: locked ? 0.6 : 1,
-                                cursor: locked ? "not-allowed" : "text",
-                                fontFamily: FONT
-                            }
-                        }),
-                        locked && React.createElement("span", {
-                            style: {
-                                position: "absolute",
-                                right: 12,
-                                top: "50%",
-                                transform: "translateY(-50%)"
-                            }
-                        }, React.createElement(Lock, {
-                            size: 12,
-                            color: ORANGE
-                        }))
-                    ),
-                    React.createElement("div", {
-                            style: {
-                                position: "relative",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                width: 244,
-                                height: 244,
-                                userSelect: "none"
-                            }
-                        },
-                        React.createElement("style", null, `
-              @keyframes disc-flash-sequence {
-                0%,  7%  { transform: scale(1);    box-shadow: 0 0 0    rgba(210,97,60,0);    }
-                11%      { transform: scale(1.06); box-shadow: 0 0 60px rgba(210,97,60,0.55); }
-                27%      { transform: scale(1);    box-shadow: 0 0 0    rgba(210,97,60,0);    }
-                43%, 44% { transform: scale(1);    box-shadow: 0 0 0    rgba(210,97,60,0);    }
-                47%      { transform: scale(1.06); box-shadow: 0 0 60px rgba(210,97,60,0.55); }
-                63%      { transform: scale(1);    box-shadow: 0 0 0    rgba(210,97,60,0);    }
-                80%, 81% { transform: scale(1);    box-shadow: 0 0 0    rgba(210,97,60,0);    }
-                84%      { transform: scale(1.06); box-shadow: 0 0 60px rgba(210,97,60,0.55); }
-                100%     { transform: scale(1);    box-shadow: 0 0 0    rgba(210,97,60,0);    }
-              }
-              @keyframes plusOne {
-                0% { opacity: 1; transform: translateY(0); }
-                100% { opacity: 0; transform: translateY(-60px); }
-              }
-            `),
-                        React.createElement("svg", {
-                            width: "244",
-                            height: "244",
-                            viewBox: "0 0 244 244",
-                            style: {
-                                position: "absolute",
-                                inset: 0
-                            }
-                        }, React.createElement("circle", {
-                            cx: "122",
-                            cy: "122",
-                            r: RING_R,
-                            fill: "none",
-                            stroke: "rgba(210,97,60,0.08)",
-                            strokeWidth: "4"
-                        }), React.createElement("circle", {
-                            cx: "122",
-                            cy: "122",
-                            r: RING_R,
-                            fill: "none",
-                            stroke: ORANGE,
-                            strokeWidth: "4",
-                            strokeDasharray: RING_C,
-                            strokeDashoffset: RING_C * (1 - frac),
-                            transform: "translate(244 0) scale(-1 1) rotate(-90 122 122)",
-                            style: {
-                                transition: "stroke-dashoffset .3s linear",
-                                opacity: 0.82
-                            }
-                        })),
-                        React.createElement("div", {
-                            key: flashId,
-                            style: {
-                                borderRadius: "50%",
-                                animation: flashId > 0
-                                    ? "disc-flash-sequence 3.025s cubic-bezier(0.34,1.4,0.5,1) forwards"
-                                    : "none"
-                            }
-                        },
-                        React.createElement("div", {
-                            style: {
-                                width: 210,
-                                height: 210,
-                                borderRadius: "50%",
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                background: ORANGE,
-                                boxShadow: running ? `0 0 50px ${ORANGE}55` : "none",
-                                transition: "box-shadow .4s"
-                            }
-                        }, React.createElement("div", {
-                            style: {
-                                color: "#fff",
-                                fontWeight: 500,
-                                fontSize: 60,
-                                lineHeight: 1,
-                                letterSpacing: 1,
-                                fontVariantNumeric: "tabular-nums",
-                                fontFamily: FONT
-                            }
-                        }, fmt))),
-                        React.createElement("div", {
-                            style: {
-                                position: "absolute",
-                                top: "50%",
-                                left: "50%",
-                                transform: "translate(-50%, -50%)",
-                                pointerEvents: "none"
-                            }
-                        }, showPlusOne && React.createElement("span", {
-                            onAnimationEnd: () => setShowPlusOne(false),
-                            style: {
-                                display: "inline-block",
-                                animation: "plusOne 1.5s ease-out forwards",
-                                color: "#fff",
-                                fontWeight: 800,
-                                fontSize: 18,
-                                whiteSpace: "nowrap"
-                            }
-                        }, "🍠 +1"))
-                    ),
-                    React.createElement("div", {
-                            style: {
-                                display: "flex",
-                                gap: 12,
-                                width: "100%",
-                                opacity: locked ? 0.55 : 1,
-                                transition: "opacity .2s"
-                            }
-                        },
-                        [
-                            ["work", "工作"],
-                            ["break", "休息"]
-                        ].map(([m, label]) =>
-                            React.createElement("button", {
-                                key: m,
-                                onClick: () => switchMode(m),
-                                disabled: locked,
-                                style: {
-                                    flex: 1,
-                                    padding: "8px 0",
-                                    borderRadius: 12,
-                                    fontWeight: 500,
-                                    background: mode === m ? ORANGE : BTN,
-                                    color: mode === m ? "#fff" : TEXT_DIM,
-                                    fontSize: 15,
-                                    cursor: locked ? "not-allowed" : "pointer",
-                                    transition: "background .2s, color .2s"
-                                }
-                            }, label)
-                        )
-                    ),
-                    React.createElement("div", {
-                            style: {
-                                display: "flex",
-                                gap: 20
-                            }
-                        }, [{
-                                onClick: togglePlay,
-                                label: running ? "暂停" : "开始",
-                                icon: running ? React.createElement(Pause, {
-                                    size: 20
-                                }) : React.createElement(Play, {
-                                    size: 20,
-                                    style: {
-                                        marginLeft: 2
-                                    }
-                                })
-                            }, {
-                                onClick: handleResetClick,
-                                label: "重置",
-                                icon: React.createElement(RotateCcw, {
-                                    size: 19
-                                })
-                            }, {
-                                onClick: toggleMute,
-                                label: muted ? "取消静音" : "静音",
-                                icon: muted ? React.createElement(VolumeX, {
-                                    size: 19
-                                }) : React.createElement(Volume2, {
-                                    size: 19
-                                })
-                            },
-                        ].map(({
-                            onClick,
-                            label,
-                            icon
-                        }, i) =>
-                            React.createElement("button", {
-                                key: i,
-                                onClick,
-                                "aria-label": label,
-                                className: "btn-press",
-                                style: {
-                                    width: 52,
-                                    height: 52,
-                                    borderRadius: "50%",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    background: BTN,
-                                    color: "#E8E6DF"
-                                }
-                            }, icon)
-                        )),
-                    React.createElement("div", {
-                            style: {
-                                width: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "0 4px"
-                            }
-                        },
-                        React.createElement("div", {
-                                style: {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 8
-                                }
-                            },
-                            React.createElement("span", {
-                                style: {
-                                    fontSize: 22
-                                }
-                            }, "🍠"),
-                            React.createElement("div", null,
-                                React.createElement("div", {
-                                    style: {
-                                        color: TEXT_DIM,
-                                        fontSize: 11
-                                    }
-                                }, "本次完成的番薯钟数"),
-                                React.createElement("div", {
-                                    style: {
-                                        color: "#E8E6DF",
-                                        fontWeight: 800,
-                                        fontSize: 22,
-                                        lineHeight: 1.1,
-                                        fontFamily: FONT
-                                    }
-                                }, count)
-                            )
-                        ),
-                        React.createElement("div", {
-                                style: {
-                                    textAlign: "right"
-                                }
-                            },
-                            React.createElement("div", {
-                                style: {
-                                    color: TEXT_DIM,
-                                    fontSize: 11
-                                }
-                            }, "总时长"),
-                            React.createElement("div", {
-                                style: {
-                                    color: "#E8E6DF",
-                                    fontWeight: 800,
-                                    fontSize: 22,
-                                    lineHeight: 1.1,
-                                    whiteSpace: "nowrap",
-                                    fontFamily: FONT
-                                }
-                            }, fmtTotalCN(totalMin))
-                        )
-                    ),
-                    React.createElement("div", {
-                            style: {
-                                width: "100%",
-                                borderRadius: 16,
-                                padding: 16,
-                                ...glass
-                            }
-                        },
-                        React.createElement("div", {
-                                style: {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 16
-                                }
-                            },
-                            React.createElement("span", {
-                                style: {
-                                    color: "#E8E6DF",
-                                    fontSize: 16,
-                                    fontWeight: 700,
-                                    whiteSpace: "nowrap"
-                                }
-                            }, "背景音"),
-                            mode === "break" ?
-                            React.createElement("div", {
-                                style: {
-                                    flex: 1,
-                                    maxWidth: 220,
-                                    height: 38,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 7
-                                }
-                            }, React.createElement("span", {
-                                style: {
-                                    display: "inline-block",
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: "50%",
-                                    backgroundColor: "#5A5850",
-                                    flexShrink: 0,
-                                    animation: "breathe-dot 3s ease-in-out infinite"
-                                }
-                            }), React.createElement("span", {
-                                style: {
-                                    color: TEXT_DIM,
-                                    fontSize: 15,
-                                    whiteSpace: "nowrap"
-                                }
-                            }, "休息中，声音已暂停 💤")) :
-                            React.createElement("div", {
-                                    style: {
-                                        position: "relative",
-                                        flex: 1,
-                                        borderRadius: 12,
-                                        background: BTN,
-                                        height: 38,
-                                        maxWidth: 220
-                                    }
-                                },
-                                React.createElement("div", {
-                                    style: {
-                                        position: "absolute",
-                                        borderRadius: 8,
-                                        top: 4,
-                                        bottom: 4,
-                                        left: noiseType === "rain" ? 4 : "calc(50% + 2px)",
-                                        width: "calc(50% - 6px)",
-                                        background: ORANGE,
-                                        transition: "left .25s cubic-bezier(.4,0,.2,1)"
-                                    }
-                                }),
-                                React.createElement("div", {
-                                        style: {
-                                            position: "absolute",
-                                            inset: 0,
-                                            display: "flex"
-                                        }
-                                    },
-                                    React.createElement("button", {
-                                        onClick: () => changeNoise("rain"),
-                                        style: {
-                                            flex: 1,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            color: noiseType === "rain" ? "#fff" : TEXT_DIM,
-                                            fontSize: 13,
-                                            background: "transparent",
-                                            zIndex: 1
-                                        }
-                                    }, "雨声"),
-                                    React.createElement("button", {
-                                        onClick: () => changeNoise("brown"),
-                                        style: {
-                                            flex: 1,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            color: noiseType === "brown" ? "#fff" :
-                                                TEXT_DIM,
-                                            fontSize: 13,
-                                            background: "transparent",
-                                            zIndex: 1
-                                        }
-                                    }, "棕噪音")
-                                )
-                            )
-                        ),
-                        React.createElement("div", {
-                            style: {
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                                marginTop: 12,
-                                ...(mode === "break" ? {
-                                    pointerEvents: "none",
-                                    opacity: 0.4
-                                } : {})
-                            }
-                        }, React.createElement("button", {
-                            onClick: toggleSliderMute,
-                            "aria-label": volume > 0 ? "静音" : "恢复音量",
-                            className: "btn-press-sm",
-                            style: {
-                                background: "transparent",
-                                padding: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                flexShrink: 0,
-                                lineHeight: 0
-                            }
-                        }, React.createElement("svg", {
-                            width: "20",
-                            height: "20",
-                            viewBox: "0 0 24 24",
-                            fill: "none",
-                            stroke: TEXT_DIM,
-                            strokeWidth: "2",
-                            strokeLinecap: "round",
-                            strokeLinejoin: "round"
-                        }, React.createElement("polygon", {
-                            points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-                        }), volume > 0 && React.createElement("path", {
-                            d: "M15.54 8.46a5 5 0 0 1 0 7.07"
-                        }), volume > 0.33 && React.createElement("path", {
-                            d: "M18.07 5.93a9 9 0 0 1 0 12.14"
-                        }), volume > 0.66 && React.createElement("path", {
-                            d: "M20.6 3.4a13 13 0 0 1 0 17.2"
-                        }))), React.createElement("input", {
-                            type: "range",
-                            min: "0",
-                            max: "1",
-                            step: "0.01",
-                            value: volume,
-                            onChange: e => setVolume(parseFloat(e.target.value)),
-                            style: {
-                                width: "100%",
-                                accentColor: "#fff",
-                                height: 4
-                            }
-                        }))
-                    ),
-                    React.createElement("div", {
-                            style: {
-                                width: "100%",
-                                borderRadius: 16,
-                                padding: 16,
-                                ...glass
-                            }
-                        },
-                        React.createElement("div", {
-                                style: {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    marginBottom: 10
-                                }
-                            },
-                            React.createElement("span", {
-                                style: {
-                                    color: "#E8E6DF",
-                                    fontSize: 16,
-                                    fontWeight: 700,
-                                    whiteSpace: "nowrap"
-                                }
-                            }, "专注时长"),
-                            React.createElement("div", {
-                                    style: {
-                                        display: "flex",
-                                        gap: 6
-                                    }
-                                },
-                                [
-                                    ["25:5", 25, 5],
-                                    ["50:10", 50, 10],
-                                    ["90:20", 90, 20]
-                                ].map(([label, w, b]) =>
-                                    React.createElement("button", {
-                                        key: label,
-                                        onClick: () => applyPreset(w, b),
-                                        className: "btn-press-sm preset-chip",
-                                        style: {
-                                            padding: "3px 10px",
-                                            borderRadius: 20,
-                                            background: "transparent",
-                                            color: TEXT_DIM,
-                                            fontSize: 11,
-                                            cursor: "pointer",
-                                            border: `1px solid #3A3930`,
-                                            letterSpacing: 0.3,
-                                            lineHeight: "18px"
-                                        }
-                                    }, label)
-                                )
-                            )
-                        ),
-                        React.createElement("div", {
-                                style: {
-                                    display: "flex",
-                                    gap: 12
-                                }
-                            },
-                            React.createElement("div", {
-                                    style: {
-                                        flex: 1
-                                    }
-                                },
-                                React.createElement("div", {
-                                    style: {
-                                        color: TEXT_DIM,
-                                        fontSize: 13,
-                                        marginBottom: 6
-                                    }
-                                }, "工作时间（分钟）"),
-                                React.createElement("input", {
-                                    type: "number",
-                                    min: "1",
-                                    max: "180",
-                                    value: workStr,
-                                    onChange: e => onWorkChange(e.target.value),
-                                    onBlur: () => setWorkStr(String(workMin)),
-                                    style: {
-                                        width: "100%",
-                                        padding: "6px 4px",
-                                        outline: "none",
-                                        background: "transparent",
-                                        color: "#E8E6DF",
-                                        fontSize: 15,
-                                        borderBottom: "1px solid #3A3930"
-                                    }
-                                })
-                            ),
-                            React.createElement("div", {
-                                    style: {
-                                        flex: 1
-                                    }
-                                },
-                                React.createElement("div", {
-                                    style: {
-                                        color: TEXT_DIM,
-                                        fontSize: 13,
-                                        marginBottom: 6
-                                    }
-                                }, "休息时间（分钟）"),
-                                React.createElement("input", {
-                                    type: "number",
-                                    min: "1",
-                                    max: "180",
-                                    value: breakStr,
-                                    onChange: e => onBreakChange(e.target.value),
-                                    onBlur: () => setBreakStr(String(breakMin)),
-                                    style: {
-                                        width: "100%",
-                                        padding: "6px 4px",
-                                        outline: "none",
-                                        background: "transparent",
-                                        color: "#E8E6DF",
-                                        fontSize: 15,
-                                        borderBottom: "1px solid #3A3930"
-                                    }
-                                })
-                            )
-                        )
-                    ),
-                    React.createElement("div", {
-                            style: {
-                                width: "100%",
-                                borderRadius: 16,
-                                ...glass
-                            }
-                        },
-                        React.createElement("button", {
-                            onClick: () => {
-                                playClick();
-                                setShowHistory(s => !s);
-                            },
-                            style: {
-                                width: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "12px 16px",
-                                color: "#E8E6DF",
-                                fontSize: 14,
-                                background: "transparent"
-                            }
-                        }, React.createElement("span", {
-                            style: {
-                                fontWeight: 700,
-                                fontSize: 16
-                            }
-                        }, "历史记录"), showHistory ? React.createElement(ChevronUp, {
-                            size: 17,
-                            color: TEXT_DIM
-                        }) : React.createElement(ChevronDown, {
-                            size: 17,
-                            color: TEXT_DIM
-                        })),
-                        showHistory && React.createElement("div", {
-                                style: {
-                                    padding: "0 16px 12px"
-                                }
-                            },
-                            history.length === 0 ? React.createElement("div", {
-                                style: {
-                                    textAlign: "center",
-                                    padding: "12px 0",
-                                    color: TEXT_DIM,
-                                    fontSize: 13
-                                }
-                            }, "还没有完成的番薯钟，开始第一个吧 🍠") :
-                            React.createElement(React.Fragment, null,
-                                React.createElement("div", {
-                                        style: {
-                                            maxHeight: 180,
-                                            overflowY: "auto"
-                                        }
-                                    },
-                                    history.map((h, i) =>
-                                        React.createElement("div", {
-                                            key: i,
-                                            style: {
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 12,
-                                                padding: "8px 0",
-                                                borderTop: i === 0 ? "none" :
-                                                    `1px solid ${BTN}`
-                                            }
-                                        }, React.createElement("div", {
-                                            style: {
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                minWidth: 44
-                                            }
-                                        }, React.createElement("span", {
-                                            style: {
-                                                color: "#E8E6DF",
-                                                fontSize: 20,
-                                                fontWeight: 800,
-                                                lineHeight: 1
-                                            }
-                                        }, fmtDuration(h.min))), React.createElement("div", {
-                                            style: {
-                                                flex: 1,
-                                                minWidth: 0
-                                            }
-                                        }, React.createElement("div", {
-                                            style: {
-                                                color: "#E8E6DF",
-                                                fontSize: 13,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap"
-                                            }
-                                        }, h.task), React.createElement("div", {
-                                            style: {
-                                                color: TEXT_DIM,
-                                                fontSize: 11,
-                                                marginTop: 1
-                                            }
-                                        }, fmtShortDate(h.date, h.time))))
-                                    )
-                                ),
-                                React.createElement("button", {
-                                    onClick: clearHistory,
-                                    style: {
-                                        width: "100%",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        gap: 4,
-                                        marginTop: 8,
-                                        padding: "8px 0",
-                                        borderRadius: 12,
-                                        background: BTN,
-                                        color: TEXT_DIM,
-                                        fontSize: 12
-                                    }
-                                }, React.createElement(Trash2, {
-                                    size: 12
-                                }), " 清空历史记录")
-                            )
-                        )
-                    )
+      const rect = (p) => h("rect", p);
+      return h(Fragment, null,
+        h("style", null, cssBase + cssBreak + cssUrgent + cssCelebrate),
+        h("div",{className:"clawd-walk",style:{position:"fixed",bottom:6,left:0,zIndex:9999,pointerEvents:"none",opacity:.9}},
+          h("div",{className:"clawd-bob"},
+            h("div",{className:"clawd-lookback",style:{'--seed':seed}},
+              h("div",{className:"clawd-stumble",style:{'--seed2':seed2}},
+                isBreak && h("div",{className:"zzz-bubble"},
+                  zzzDelays.map((d,i)=>h("span",{key:i,className:"zzz-char",style:{animationDelay:`${d}s`,fontSize:`${11+i*2.5}px`}}, i===0?"z":"Z"))
                 ),
-                showResetConfirm && React.createElement("div", {
-                    onClick: cancelReset,
-                    style: {
-                        position: "fixed",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "rgba(0,0,0,0.55)",
-                        zIndex: 1000
-                    }
-                }, React.createElement("div", {
-                    onClick: e => e.stopPropagation(),
-                    style: {
-                        borderRadius: 16,
-                        padding: 24,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 16,
-                        background: CARD,
-                        width: 280,
-                        border: "1px solid rgba(255,255,255,0.06)",
-                        boxShadow: "0 8px 40px rgba(0,0,0,0.5)"
-                    }
-                }, React.createElement("div", {
-                    style: {
-                        fontSize: 32
-                    }
-                }, "⏱️"), React.createElement("div", {
-                    style: {
-                        textAlign: "center"
-                    }
-                }, React.createElement("div", {
-                    style: {
-                        color: "#E8E6DF",
-                        fontWeight: 700,
-                        fontSize: 16,
-                        marginBottom: 6
-                    }
-                }, "确定要重置吗？"), React.createElement("div", {
-                    style: {
-                        color: TEXT_DIM,
-                        fontSize: 13
-                    }
-                }, "当前进度将会清空。")), React.createElement("div", {
-                    style: {
-                        display: "flex",
-                        gap: 12,
-                        width: "100%"
-                    }
-                }, React.createElement("button", {
-                    onClick: cancelReset,
-                    style: {
-                        flex: 1,
-                        padding: "8px 0",
-                        borderRadius: 12,
-                        fontWeight: 500,
-                        background: BTN,
-                        color: TEXT_DIM,
-                        fontSize: 14
-                    }
-                }, "取消"), React.createElement("button", {
-                    onClick: confirmReset,
-                    style: {
-                        flex: 1,
-                        padding: "8px 0",
-                        borderRadius: 12,
-                        fontWeight: 500,
-                        background: ORANGE,
-                        color: "#fff",
-                        fontSize: 14
-                    }
-                }, "确认重置"))))
-            );
-        }
+                h("svg",{width:"78",height:"65",viewBox:"0 0 24 20",shapeRendering:"crispEdges"},
+                  h("g",{className:"claw claw-l"},
+                    rect({x:"0",y:"3",width:"4",height:"2",fill:"#E2795B"}),
+                    rect({x:"0",y:"6",width:"4",height:"1",fill:"#E2795B"}),
+                    rect({x:"2",y:"5",width:"3",height:"3",fill:"#D2613C"})),
+                  h("g",{className:"claw claw-r"},
+                    rect({x:"20",y:"3",width:"4",height:"2",fill:"#E2795B"}),
+                    rect({x:"20",y:"6",width:"4",height:"1",fill:"#E2795B"}),
+                    rect({x:"19",y:"5",width:"3",height:"3",fill:"#D2613C"})),
+                  rect({x:"5",y:"7",width:"1",height:"2",fill:"#C05B3F"}),
+                  rect({x:"18",y:"7",width:"1",height:"2",fill:"#C05B3F"}),
+                  rect({x:"7",y:"8",width:"10",height:"1",fill:"#E2795B"}),
+                  rect({x:"6",y:"9",width:"12",height:"6",fill:"#E2795B"}),
+                  rect({x:"7",y:"15",width:"10",height:"1",fill:"#D2613C"}),
+                  h("g",{className:"eye"},
+                    rect({x:"9",y:"10",width:"2",height:"2",fill:"#FFFFFF"}),
+                    rect({className:"clawd-pupil",x:"10",y:"11",width:"1",height:"1",fill:"#1C1B17"})),
+                  h("g",{className:"eye"},
+                    rect({x:"13",y:"10",width:"2",height:"2",fill:"#FFFFFF"}),
+                    rect({className:"clawd-pupil",x:"14",y:"11",width:"1",height:"1",fill:"#1C1B17"})),
+                  rect({x:"11",y:"13",width:"2",height:"1",fill:"#C05B3F",className:"mouth"}),
+                  rect({x:"7",y:"16",width:"1",height:"2",fill:"#C05B3F"}),
+                  rect({x:"10",y:"16",width:"1",height:"2",fill:"#C05B3F"}),
+                  rect({x:"13",y:"16",width:"1",height:"2",fill:"#C05B3F"}),
+                  rect({x:"16",y:"16",width:"1",height:"2",fill:"#C05B3F"})
+                )
+              )
+            )
+          )
+        )
+      );
+    };
 
-        ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(PomodoroApp, null));
-    </script>
-    <style>
-        @keyframes breathe-dot {
-            0%,
-            100% {
-                transform: scale(0.65);
-                opacity: 0.3;
-            }
-            50% {
-                transform: scale(1.35);
-                opacity: 0.9;
-            }
+    /* ===================== 音频 Hook ===================== */
+    const playTone = (ctx, t, dest, freq, gainStart, gainEnd, rampDur, stopDur) => {
+      const o = ctx.createOscillator(); o.type="sine"; o.frequency.value=freq;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(gainStart, t);
+      g.gain.exponentialRampToValueAtTime(gainEnd, t+rampDur);
+      o.connect(g); g.connect(dest); o.start(t); o.stop(t+stopDur);
+    };
+
+    function useAudio() {
+      const audio = useRef({ ctx:null, sources:[], masterGain:null, dropTimer:null, buffers:{}, noiseId:0 });
+
+      const getCtx = useCallback(() => {
+        const a = audio.current;
+        if(!a.ctx) a.ctx = new (window.AudioContext||window.webkitAudioContext)();
+        if(a.ctx.state==="suspended") a.ctx.resume().catch(()=>{});
+        return a.ctx;
+      }, []);
+      const ensureCtx = useCallback(async () => {
+        const ctx = getCtx();
+        if(ctx.state==="suspended") await ctx.resume();
+        return ctx;
+      }, [getCtx]);
+
+      const makeBuffer = useCallback((type) => {
+        const ctx = getCtx();
+        const len = ctx.sampleRate * 2;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        if(type==="white"){
+          for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+        } else if(type==="brown"){
+          let last=0;
+          for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.5; }
+        } else {
+          let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+          for(let i=0;i<len;i++){
+            const w=Math.random()*2-1;
+            b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759; b2=0.969*b2+w*0.153852;
+            b3=0.8665*b3+w*0.3104856; b4=0.55*b4+w*0.5329522; b5=-0.7616*b5-w*0.016898;
+            d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926;
+          }
         }
-    </style>
+        return buf;
+      }, [getCtx]);
+      const getBuf = useCallback((t)=>{ const a=audio.current; if(!a.buffers[t]) a.buffers[t]=makeBuffer(t); return a.buffers[t]; }, [makeBuffer]);
+
+      const stopNoise = useCallback(() => {
+        const a = audio.current;
+        a.sources.forEach(s=>{ try{s.stop();}catch(e){} });
+        a.sources = []; a.masterGain = null;
+        if(a.dropTimer){ clearInterval(a.dropTimer); a.dropTimer=null; }
+      }, []);
+
+      const startNoise = useCallback(async ({ type, muted, volume, mode }) => {
+        if(mode==="break") return;
+        const a = audio.current;
+        const id = ++a.noiseId;
+        await ensureCtx();
+        if(id !== a.noiseId) return;
+        stopNoise();
+        const ctx = a.ctx;
+        const master = ctx.createGain();
+        master.gain.value = muted ? 0 : volume;
+        master.connect(ctx.destination);
+        a.masterGain = master;
+        const loopSrc = (buf) => { const s=ctx.createBufferSource(); s.buffer=buf; s.loop=true; a.sources.push(s); return s; };
+        if(type==="brown"){
+          const src = loopSrc(getBuf("brown")); src.connect(master); src.start();
+        } else {
+          const bed = loopSrc(getBuf("pink"));
+          const bedLp = ctx.createBiquadFilter(); bedLp.type="lowpass"; bedLp.frequency.value=1300;
+          const bedG = ctx.createGain(); bedG.gain.value=0.9;
+          bed.connect(bedLp); bedLp.connect(bedG); bedG.connect(master); bed.start();
+          const hiss = loopSrc(getBuf("white"));
+          const bp = ctx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=5200; bp.Q.value=0.8;
+          const hissG = ctx.createGain(); hissG.gain.value=0.1;
+          hiss.connect(bp); bp.connect(hissG); hissG.connect(master); hiss.start();
+          a.dropTimer = setInterval(() => {
+            if(!a.masterGain) return;
+            const n = 1 + Math.floor(Math.random()*3);
+            for(let i=0;i<n;i++){
+              const t0 = ctx.currentTime + Math.random()*0.12;
+              const o = ctx.createOscillator(); o.type="sine";
+              const f = 500 + Math.random()*2200;
+              o.frequency.setValueAtTime(f, t0);
+              o.frequency.exponentialRampToValueAtTime(f*0.6, t0+0.06);
+              const g = ctx.createGain();
+              const v = 0.04 + Math.random()*0.1;
+              g.gain.setValueAtTime(0.0001, t0);
+              g.gain.exponentialRampToValueAtTime(v, t0+0.005);
+              g.gain.exponentialRampToValueAtTime(0.0001, t0+0.05+Math.random()*0.06);
+              o.connect(g); g.connect(a.masterGain); o.start(t0); o.stop(t0+0.18);
+            }
+          }, 130);
+        }
+      }, [ensureCtx, stopNoise, getBuf]);
+
+      const playClick = useCallback((muted) => {
+        if(muted) return;
+        try {
+          const ctx = getCtx(); const t = ctx.currentTime;
+          const n = Math.floor(ctx.sampleRate*0.005);
+          const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+          const d = buf.getChannelData(0);
+          for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,6);
+          const src = ctx.createBufferSource(); src.buffer=buf;
+          const bp = ctx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=4000; bp.Q.value=1.8;
+          const g1 = ctx.createGain(); g1.gain.value=0.7;
+          src.connect(bp); bp.connect(g1); g1.connect(ctx.destination); src.start(t);
+          playTone(ctx, t, ctx.destination, 3500, 0.18, 0.0001, 0.012, 0.015);
+          playTone(ctx, t, ctx.destination, 800, 0.06, 0.0001, 0.008, 0.01);
+        } catch(e){}
+      }, [getCtx]);
+
+      const playAlert = useCallback((muted) => {
+        if(muted) return;
+        try {
+          const ctx = getCtx(); const t0 = ctx.currentTime;
+          const beeps = ALERT_GROUPS.flatMap(t => [[880,t],[659.25,t+0.45]]);
+          beeps.forEach(([f,dt]) => {
+            const o = ctx.createOscillator(); o.type="sine"; o.frequency.value=f;
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.0001, t0+dt);
+            g.gain.exponentialRampToValueAtTime(0.4, t0+dt+0.02);
+            g.gain.exponentialRampToValueAtTime(0.0005, t0+dt+0.6);
+            o.connect(g); g.connect(ctx.destination); o.start(t0+dt); o.stop(t0+dt+0.7);
+          });
+        } catch(e){}
+      }, [getCtx]);
+
+      const setMasterGain = useCallback((v) => { const a=audio.current; if(a.masterGain) a.masterGain.gain.value=v; }, []);
+
+      // 预热缓冲 & 解锁音频上下文
+      useEffect(() => {
+        const tm = setTimeout(()=>{ try{ getBuf("pink"); getBuf("brown"); getBuf("white"); }catch(e){} }, 200);
+        return ()=>clearTimeout(tm);
+      }, [getBuf]);
+      useEffect(() => {
+        const warm = ()=>{ ensureCtx().catch(()=>{}); };
+        document.addEventListener('pointerdown', warm, { once:true });
+        return ()=>document.removeEventListener('pointerdown', warm);
+      }, [ensureCtx]);
+
+      return { startNoise, stopNoise, playClick, playAlert, setMasterGain };
+    }
+
+    /* ===================== 计时 Hook（reducer + 时间戳，抗后台节流） ===================== */
+    function timerReducer(s, a) {
+      switch(a.type){
+        case 'TICK':         return { ...s, timeLeft: Math.max(0, Math.ceil((s.endAt - Date.now())/1000)) };
+        case 'SET_DURATION': return { ...s, timeLeft:a.payload, total:a.payload };
+        case 'START':        return { ...s, running:true, locked:true, endAt: Date.now() + s.timeLeft*1000 };
+        case 'PAUSE':        return { ...s, running:false };
+        case 'RESET':        return { ...s, running:false, locked:false, timeLeft:a.payload, total:a.payload };
+        case 'FINISH':       return { ...s, running:false, locked:false, timeLeft:0 };
+        default:             return s;
+      }
+    }
+    function useTimer(initialSeconds, onComplete) {
+      const [state, dispatch] = useReducer(timerReducer, { running:false, locked:false, timeLeft:initialSeconds, total:initialSeconds, endAt:0 });
+      const completeRef = useRef(onComplete); completeRef.current = onComplete;
+
+      // 运行时每 250ms 推进一次；回到前台时立即补一拍（修正被节流的标签页）
+      useEffect(() => {
+        if(!state.running) return;
+        const tick = () => dispatch({ type:'TICK' });
+        const id = setInterval(tick, 250);
+        const onVis = () => { if(document.visibilityState==='visible') tick(); };
+        document.addEventListener('visibilitychange', onVis);
+        return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+      }, [state.running]);
+
+      // 归零时触发一次完成回调
+      useEffect(() => {
+        if(state.running && state.timeLeft===0){
+          dispatch({ type:'FINISH' });
+          if(completeRef.current) completeRef.current();
+        }
+      }, [state.timeLeft, state.running]);
+
+      return { ...state, dispatch };
+    }
+
+    /* ===================== 子组件 ===================== */
+    const TaskInput = ({ task, locked, onChange }) =>
+      h("div",{style:{width:"100%",position:"relative"}},
+        h("input",{ type:"text", value:task, disabled:locked, maxLength:20, onChange:e=>onChange(e.target.value),
+          placeholder:"请输入当前任务…",
+          style:{ width:"100%",borderRadius:12,padding:"12px 16px",textAlign:"center",outline:"none",...glass,
+            color:TEXT_MAIN,fontSize:18,opacity:locked?0.6:1,cursor:locked?"not-allowed":"text",fontFamily:FONT } }),
+        locked && h("span",{style:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)"}},
+          h(Icon,{name:"Lock",size:12,color:ORANGE}))
+      );
+
+    const TimerRing = ({ timeLeft, total, running, flashId, showPlusOne, onPlusOneEnd }) => {
+      const frac = total>0 ? Math.max(0, Math.min(1, timeLeft/total)) : 0;
+      return h("div",{style:{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",width:244,height:244,userSelect:"none"}},
+        h("style",null,`
+          @keyframes disc-flash-sequence{0%,7%{transform:scale(1);box-shadow:0 0 0 rgba(210,97,60,0)}11%{transform:scale(1.06);box-shadow:0 0 60px rgba(210,97,60,.55)}27%{transform:scale(1);box-shadow:0 0 0 rgba(210,97,60,0)}43%,44%{transform:scale(1);box-shadow:0 0 0 rgba(210,97,60,0)}47%{transform:scale(1.06);box-shadow:0 0 60px rgba(210,97,60,.55)}63%{transform:scale(1);box-shadow:0 0 0 rgba(210,97,60,0)}80%,81%{transform:scale(1);box-shadow:0 0 0 rgba(210,97,60,0)}84%{transform:scale(1.06);box-shadow:0 0 60px rgba(210,97,60,.55)}100%{transform:scale(1);box-shadow:0 0 0 rgba(210,97,60,0)}}
+          @keyframes plusOne{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+        `),
+        h("svg",{width:"244",height:"244",viewBox:"0 0 244 244",style:{position:"absolute",inset:0}},
+          h("circle",{cx:"122",cy:"122",r:RING_R,fill:"none",stroke:"rgba(210,97,60,0.08)",strokeWidth:"4"}),
+          h("circle",{cx:"122",cy:"122",r:RING_R,fill:"none",stroke:ORANGE,strokeWidth:"4",
+            strokeDasharray:RING_C, strokeDashoffset:RING_C*(1-frac),
+            transform:"translate(244 0) scale(-1 1) rotate(-90 122 122)",
+            style:{transition:"stroke-dashoffset .3s linear",opacity:0.82}})),
+        h("div",{ key:flashId,
+            style:{borderRadius:"50%",animation:flashId>0?"disc-flash-sequence 3.025s cubic-bezier(0.34,1.4,0.5,1) forwards":"none"} },
+          h("div",{style:{width:210,height:210,borderRadius:"50%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+              background:ORANGE,boxShadow:running?`0 0 50px ${ORANGE}55`:"none",transition:"box-shadow .4s"}},
+            h("div",{style:{color:"#fff",fontWeight:500,fontSize:60,lineHeight:1,letterSpacing:1,fontVariantNumeric:"tabular-nums",fontFamily:FONT}}, fmtMMSS(timeLeft)))),
+        h("div",{style:{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%, -50%)",pointerEvents:"none"}},
+          showPlusOne && h("span",{ onAnimationEnd:onPlusOneEnd,
+            style:{display:"inline-block",animation:"plusOne 1.5s ease-out forwards",color:"#fff",fontWeight:800,fontSize:18,whiteSpace:"nowrap"} }, "🍠 +1"))
+      );
+    };
+
+    const ModeToggle = ({ mode, locked, onSwitch }) =>
+      h("div",{style:{display:"flex",gap:12,width:"100%",opacity:locked?0.55:1,transition:"opacity .2s"}},
+        [["work","工作"],["break","休息"]].map(([m,label]) =>
+          h("button",{ key:m, onClick:()=>onSwitch(m), disabled:locked,
+            style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:mode===m?ORANGE:BTN,
+              color:mode===m?"#fff":TEXT_DIM,fontSize:15,cursor:locked?"not-allowed":"pointer",transition:"background .2s, color .2s"} }, label))
+      );
+
+    const Controls = ({ running, muted, onTogglePlay, onReset, onToggleMute }) => {
+      const items = [
+        { onClick:onTogglePlay, label:running?"暂停":"开始", icon: running?h(Icon,{name:"Pause",size:20}):h(Icon,{name:"Play",size:20,style:{marginLeft:2}}) },
+        { onClick:onReset, label:"重置", icon:h(Icon,{name:"RotateCcw",size:19}) },
+        { onClick:onToggleMute, label:muted?"取消静音":"静音", icon:muted?h(Icon,{name:"VolumeX",size:19}):h(Icon,{name:"Volume2",size:19}) },
+      ];
+      return h("div",{style:{display:"flex",gap:20}},
+        items.map(({onClick,label,icon},i)=>
+          h("button",{ key:i, onClick, "aria-label":label, className:"btn-press",
+            style:{width:52,height:52,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:BTN,color:TEXT_MAIN} }, icon))
+      );
+    };
+
+    const StatsRow = ({ count, totalMin }) =>
+      h("div",{style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px"}},
+        h("div",{style:{display:"flex",alignItems:"center",gap:8}},
+          h("span",{style:{fontSize:22}},"🍠"),
+          h("div",null,
+            h("div",{style:{color:TEXT_DIM,fontSize:11}},"本次完成的番薯钟数"),
+            h("div",{style:{color:TEXT_MAIN,fontWeight:800,fontSize:22,lineHeight:1.1,fontFamily:FONT}}, count))),
+        h("div",{style:{textAlign:"right"}},
+          h("div",{style:{color:TEXT_DIM,fontSize:11}},"总时长"),
+          h("div",{style:{color:TEXT_MAIN,fontWeight:800,fontSize:22,lineHeight:1.1,whiteSpace:"nowrap",fontFamily:FONT}}, fmtTotalCN(totalMin)))
+      );
+
+    const NoiseSelector = ({ mode, noiseType, volume, onChangeNoise, onVolume, onToggleSliderMute }) =>
+      h("div",{style:{width:"100%",borderRadius:16,padding:16,...glass}},
+        h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}},
+          h("span",{style:{color:TEXT_MAIN,fontSize:16,fontWeight:700,whiteSpace:"nowrap"}},"背景音"),
+          mode==="break"
+            ? h("div",{style:{flex:1,maxWidth:220,height:38,display:"flex",alignItems:"center",justifyContent:"center",gap:7}},
+                h("span",{style:{display:"inline-block",width:6,height:6,borderRadius:"50%",backgroundColor:"#5A5850",flexShrink:0,animation:"breathe-dot 3s ease-in-out infinite"}}),
+                h("span",{style:{color:TEXT_DIM,fontSize:15,whiteSpace:"nowrap"}},"休息中，声音已暂停 💤"))
+            : h("div",{style:{position:"relative",flex:1,borderRadius:12,background:BTN,height:38,maxWidth:220}},
+                h("div",{style:{position:"absolute",borderRadius:8,top:4,bottom:4,left:noiseType==="rain"?4:"calc(50% + 2px)",width:"calc(50% - 6px)",background:ORANGE,transition:"left .25s cubic-bezier(.4,0,.2,1)"}}),
+                h("div",{style:{position:"absolute",inset:0,display:"flex"}},
+                  h("button",{onClick:()=>onChangeNoise("rain"),style:{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:noiseType==="rain"?"#fff":TEXT_DIM,fontSize:13,background:"transparent",zIndex:1}},"雨声"),
+                  h("button",{onClick:()=>onChangeNoise("brown"),style:{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:noiseType==="brown"?"#fff":TEXT_DIM,fontSize:13,background:"transparent",zIndex:1}},"棕噪音")))
+        ),
+        h("div",{style:{display:"flex",alignItems:"center",gap:12,marginTop:12,...(mode==="break"?{pointerEvents:"none",opacity:0.4}:{})}},
+          h("button",{onClick:onToggleSliderMute,"aria-label":volume>0?"静音":"恢复音量",className:"btn-press-sm",
+            style:{background:"transparent",padding:0,display:"flex",alignItems:"center",flexShrink:0,lineHeight:0}},
+            h("svg",{width:"20",height:"20",viewBox:"0 0 24 24",fill:"none",stroke:TEXT_DIM,strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round"},
+              h("polygon",{points:"11 5 6 9 2 9 2 15 6 15 11 19 11 5"}),
+              volume>0 && h("path",{d:"M15.54 8.46a5 5 0 0 1 0 7.07"}),
+              volume>0.33 && h("path",{d:"M18.07 5.93a9 9 0 0 1 0 12.14"}),
+              volume>0.66 && h("path",{d:"M20.6 3.4a13 13 0 0 1 0 17.2"}))),
+          h("input",{type:"range",min:"0",max:"1",step:"0.01",value:volume,onChange:e=>onVolume(parseFloat(e.target.value)),style:{width:"100%",accentColor:"#fff",height:4}}))
+      );
+
+    const DurationSettings = ({ workStr, breakStr, workMin, breakMin, onWorkChange, onBreakChange, onWorkBlur, onBreakBlur, onPreset }) => {
+      const field = (label, val, onChange, onBlur) =>
+        h("div",{style:{flex:1}},
+          h("div",{style:{color:TEXT_DIM,fontSize:13,marginBottom:6}}, label),
+          h("input",{type:"number",min:"1",max:"180",value:val,onChange:e=>onChange(e.target.value),onBlur,
+            style:{width:"100%",padding:"6px 4px",outline:"none",background:"transparent",color:TEXT_MAIN,fontSize:15,borderBottom:"1px solid #3A3930"}}));
+      return h("div",{style:{width:"100%",borderRadius:16,padding:16,...glass}},
+        h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}},
+          h("span",{style:{color:TEXT_MAIN,fontSize:16,fontWeight:700,whiteSpace:"nowrap"}},"专注时长"),
+          h("div",{style:{display:"flex",gap:6}},
+            PRESETS.map(([label,w,b]) =>
+              h("button",{key:label,onClick:()=>onPreset(w,b),className:"btn-press-sm preset-chip",
+                style:{padding:"3px 10px",borderRadius:20,background:"transparent",color:TEXT_DIM,fontSize:11,cursor:"pointer",border:"1px solid #3A3930",letterSpacing:0.3,lineHeight:"18px"}}, label)))),
+        h("div",{style:{display:"flex",gap:12}},
+          field("工作时间（分钟）", workStr, onWorkChange, onWorkBlur),
+          field("休息时间（分钟）", breakStr, onBreakChange, onBreakBlur))
+      );
+    };
+
+    const HistoryPanel = ({ history, show, onToggle, onClear }) =>
+      h("div",{style:{width:"100%",borderRadius:16,...glass}},
+        h("button",{onClick:onToggle,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",color:TEXT_MAIN,fontSize:14,background:"transparent"}},
+          h("span",{style:{fontWeight:700,fontSize:16}},"历史记录"),
+          h(Icon,{name:show?"ChevronUp":"ChevronDown",size:17,color:TEXT_DIM})),
+        show && h("div",{style:{padding:"0 16px 12px"}},
+          history.length===0
+            ? h("div",{style:{textAlign:"center",padding:"12px 0",color:TEXT_DIM,fontSize:13}},"还没有完成的番薯钟，开始第一个吧 🍠")
+            : h(Fragment,null,
+                h("div",{style:{maxHeight:180,overflowY:"auto"}},
+                  history.map((it,i)=>
+                    h("div",{key:i,style:{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderTop:i===0?"none":`1px solid ${BTN}`}},
+                      h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minWidth:44}},
+                        h("span",{style:{color:TEXT_MAIN,fontSize:20,fontWeight:800,lineHeight:1}}, fmtDuration(it.min))),
+                      h("div",{style:{flex:1,minWidth:0}},
+                        h("div",{style:{color:TEXT_MAIN,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, it.task),
+                        h("div",{style:{color:TEXT_DIM,fontSize:11,marginTop:1}}, fmtShortDate(it.date, it.time)))))),
+                h("button",{onClick:onClear,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginTop:8,padding:"8px 0",borderRadius:12,background:BTN,color:TEXT_DIM,fontSize:12}},
+                  h(Icon,{name:"Trash2",size:12})," 清空历史记录")))
+      );
+
+    const ResetDialog = ({ onCancel, onConfirm }) =>
+      h("div",{onClick:onCancel,style:{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",zIndex:1000}},
+        h("div",{onClick:e=>e.stopPropagation(),style:{borderRadius:16,padding:24,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:CARD,width:280,border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 8px 40px rgba(0,0,0,0.5)"}},
+          h("div",{style:{fontSize:32}},"⏱️"),
+          h("div",{style:{textAlign:"center"}},
+            h("div",{style:{color:TEXT_MAIN,fontWeight:700,fontSize:16,marginBottom:6}},"确定要重置吗？"),
+            h("div",{style:{color:TEXT_DIM,fontSize:13}},"当前进度将会清空。")),
+          h("div",{style:{display:"flex",gap:12,width:"100%"}},
+            h("button",{onClick:onCancel,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:BTN,color:TEXT_DIM,fontSize:14}},"取消"),
+            h("button",{onClick:onConfirm,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:ORANGE,color:"#fff",fontSize:14}},"确认重置")))
+      );
+
+    /* ===================== 主应用 ===================== */
+    function PomodoroApp() {
+      const [mode, setMode] = useState("work");
+      const [workStr, setWorkStr] = useState("25");
+      const [breakStr, setBreakStr] = useState("5");
+      const [muted, setMuted] = useState(false);
+      const [volume, setVolume] = useState(0.3);
+      const [noiseType, setNoiseType] = useState("rain");
+      const [count, setCount] = useState(0);
+      const [task, setTask] = useState("");
+      const [history, setHistory] = useState([]);
+      const [showHistory, setShowHistory] = useState(false);
+      const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const [flashId, setFlashId] = useState(0);
+      const [showPlusOne, setShowPlusOne] = useState(false);
+      const [isCelebrating, setIsCelebrating] = useState(false);
+
+      const workMin = parseMin(workStr, 25);
+      const breakMin = parseMin(breakStr, 5);
+      const curDuration = (mode==="work" ? workMin : breakMin) * 60;
+
+      const audio = useAudio();
+
+      // 用于在完成回调里读取“最新值”
+      const mutedRef = useRef(muted);  mutedRef.current = muted;
+      const volRef = useRef(volume);   volRef.current = volume;
+      const modeRef = useRef(mode);    modeRef.current = mode;
+      const activeWorkMinRef = useRef(workMin);
+      const endMetaRef = useRef({ mode, task, workMin, breakMin });
+      endMetaRef.current = { mode, task, workMin, breakMin };
+      const dispatchRef = useRef(null);
+      const prevVolRef = useRef(0.3);
+
+      const notify = useCallback((title, body) => {
+        try {
+          if("Notification" in window && Notification.permission==="granted"){
+            new Notification(title, { body, tag:"pomodoro",
+              icon:"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍠</text></svg>" });
+          }
+        } catch(e){}
+      }, []);
+
+      // 完成回调：每次渲染都把最新版本喂给 useTimer 的 completeRef，所以无需 memo
+      function handleComplete() {
+        const { mode, task, workMin, breakMin } = endMetaRef.current;
+        setIsCelebrating(true);
+        setTimeout(()=>setIsCelebrating(false), 1600);
+        audio.stopNoise();
+        audio.playAlert(mutedRef.current);
+        setFlashId(id=>id+1);
+        if(mode==="work"){
+          const now = new Date();
+          const entry = { date:todayStr(), time:`${pad2(now.getHours())}:${pad2(now.getMinutes())}`, min:activeWorkMinRef.current, task:task.trim()||"未命名任务" };
+          setCount(c=>{ const n=c+1; store.set("pomodoro-count", String(n)); return n; });
+          setHistory(hs=>{ const n=[entry,...hs].slice(0,50); store.set("pomodoro-history", JSON.stringify(n)); return n; });
+          setShowPlusOne(true);
+          notify("🍠 番薯钟", "工作时间结束，休息一下吧");
+          setMode("break"); modeRef.current="break";
+          dispatchRef.current && dispatchRef.current({ type:'SET_DURATION', payload: breakMin*60 });
+        } else {
+          notify("🍠 番薯钟", "休息结束，开始下一个番薯钟");
+          setMode("work"); modeRef.current="work";
+          dispatchRef.current && dispatchRef.current({ type:'SET_DURATION', payload: workMin*60 });
+        }
+      }
+
+      const timer = useTimer(workMin*60, handleComplete);
+      dispatchRef.current = timer.dispatch;
+
+      const isUrgent = mode==="work" && timer.running && timer.timeLeft>0 && timer.timeLeft<=60;
+
+      // 音量 / 静音实时作用到正在播放的噪声
+      useEffect(() => { audio.setMasterGain(muted ? 0 : volume); }, [volume, muted, audio]);
+
+      // 载入本地持久化数据
+      useEffect(() => {
+        const c = store.get("pomodoro-count"); if(c!=null) setCount(parseInt(c,10)||0);
+        const hh = store.get("pomodoro-history"); if(hh){ try{ setHistory(JSON.parse(hh)||[]); }catch(e){} }
+      }, []);
+
+      const togglePlay = useCallback(async () => {
+        audio.playClick(mutedRef.current);
+        if(timer.running){
+          timer.dispatch({ type:'PAUSE' });
+          audio.stopNoise();
+        } else {
+          if(!timer.locked && mode==="work") activeWorkMinRef.current = workMin;
+          if("Notification" in window && Notification.permission==="default"){ try{ Notification.requestPermission(); }catch(e){} }
+          if(timer.timeLeft===0) timer.dispatch({ type:'SET_DURATION', payload:curDuration });
+          await audio.startNoise({ type:noiseType, muted:mutedRef.current, volume:volRef.current, mode });
+          timer.dispatch({ type:'START' });
+        }
+      }, [audio, timer, mode, workMin, curDuration, noiseType]);
+
+      const reset = useCallback(() => { audio.stopNoise(); timer.dispatch({ type:'RESET', payload:curDuration }); }, [audio, timer, curDuration]);
+      const handleResetClick = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(true); }, [audio]);
+      const confirmReset = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(false); reset(); }, [audio, reset]);
+      const cancelReset = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(false); }, [audio]);
+
+      const switchMode = useCallback((m) => {
+        if(timer.locked) return;
+        audio.playClick(mutedRef.current);
+        if(m===mode) return;
+        audio.stopNoise();
+        setMode(m); modeRef.current=m;
+        timer.dispatch({ type:'RESET', payload:(m==="work"?workMin:breakMin)*60 });
+      }, [audio, timer, mode, workMin, breakMin]);
+
+      const toggleMute = useCallback(() => { const next=!muted; setMuted(next); mutedRef.current=next; if(!next) audio.playClick(false); }, [muted, audio]);
+      const toggleSliderMute = useCallback(() => {
+        audio.playClick(mutedRef.current);
+        if(volume>0){ prevVolRef.current=volume; setVolume(0); }
+        else { setVolume(prevVolRef.current>0 ? prevVolRef.current : 0.3); }
+      }, [audio, volume]);
+      const changeNoise = useCallback(async (t) => {
+        if(t===noiseType) return;
+        audio.playClick(mutedRef.current);
+        setNoiseType(t);
+        if(timer.running) await audio.startNoise({ type:t, muted:mutedRef.current, volume:volRef.current, mode:modeRef.current });
+      }, [audio, noiseType, timer.running]);
+
+      const onWorkChange = useCallback((v) => {
+        setWorkStr(v); const n=parseInt(v,10);
+        if(!timer.locked && mode==="work" && Number.isFinite(n) && n>=1) timer.dispatch({ type:'SET_DURATION', payload:Math.min(180,n)*60 });
+      }, [timer, mode]);
+      const onBreakChange = useCallback((v) => {
+        setBreakStr(v); const n=parseInt(v,10);
+        if(!timer.locked && mode==="break" && Number.isFinite(n) && n>=1) timer.dispatch({ type:'SET_DURATION', payload:Math.min(180,n)*60 });
+      }, [timer, mode]);
+      const applyPreset = useCallback((w,b) => {
+        audio.playClick(mutedRef.current);
+        setWorkStr(String(w)); setBreakStr(String(b));
+        if(!timer.locked) timer.dispatch({ type:'SET_DURATION', payload:(mode==="work"?w:b)*60 });
+      }, [audio, timer, mode]);
+
+      const clearHistory = useCallback(() => {
+        audio.playClick(mutedRef.current);
+        setHistory([]); setCount(0);
+        store.remove("pomodoro-history"); store.remove("pomodoro-count");
+      }, [audio]);
+
+      const totalMin = history.reduce((s,it)=>s+(it.min||0), 0);
+
+      return h("div",{style:{minHeight:"100vh",width:"100%",display:"flex",justifyContent:"center",position:"relative",overflow:"hidden",background:"transparent",fontFamily:FONT}},
+        h(Clawd,{ isBreak:mode==="break", isUrgent, isCelebrating }),
+        h("div",{style:{width:"100%",maxWidth:390,display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"16px",position:"relative",zIndex:1}},
+          h(TaskInput,{ task, locked:timer.locked, onChange:setTask }),
+          h(TimerRing,{ timeLeft:timer.timeLeft, total:timer.total, running:timer.running, flashId, showPlusOne, onPlusOneEnd:()=>setShowPlusOne(false) }),
+          h(ModeToggle,{ mode, locked:timer.locked, onSwitch:switchMode }),
+          h(Controls,{ running:timer.running, muted, onTogglePlay:togglePlay, onReset:handleResetClick, onToggleMute:toggleMute }),
+          h(StatsRow,{ count, totalMin }),
+          h(NoiseSelector,{ mode, noiseType, volume, onChangeNoise:changeNoise, onVolume:setVolume, onToggleSliderMute:toggleSliderMute }),
+          h(DurationSettings,{ workStr, breakStr, workMin, breakMin,
+            onWorkChange, onBreakChange, onWorkBlur:()=>setWorkStr(String(workMin)), onBreakBlur:()=>setBreakStr(String(breakMin)), onPreset:applyPreset }),
+          h(HistoryPanel,{ history, show:showHistory, onToggle:()=>{ audio.playClick(mutedRef.current); setShowHistory(s=>!s); }, onClear:clearHistory })
+        ),
+        showResetConfirm && h(ResetDialog,{ onCancel:cancelReset, onConfirm:confirmReset })
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(h(PomodoroApp));
+  </script>
 </body>
 </html>

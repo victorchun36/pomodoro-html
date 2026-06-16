@@ -544,15 +544,17 @@
           React.createElement("div", { style: { width:"100%", borderRadius:16, padding:16, ...glass } },
             React.createElement("div", { style: { display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 } },
               React.createElement("span", { style: { color:"#E8E6DF", fontSize:16, fontWeight:700, whiteSpace:"nowrap" } }, "背景音"),
-              React.createElement("div", { style: { position:"relative", flex:1, borderRadius:12, background:BTN, height:38, maxWidth:220 } },
-                React.createElement("div", { style: { position:"absolute", borderRadius:8, top:4, bottom:4, left:noiseType==="rain"?4:"calc(50% + 2px)", width:"calc(50% - 6px)", background:ORANGE, transition:"left .25s cubic-bezier(.4,0,.2,1)" } }),
-                React.createElement("div", { style: { position:"absolute", inset:0, display:"flex" } },
-                  React.createElement("button", { onClick:()=>changeNoise("rain"), style: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:noiseType==="rain"?"#fff":TEXT_DIM, fontSize:13, background:"transparent", zIndex:1 } }, "雨声"),
-                  React.createElement("button", { onClick:()=>changeNoise("brown"), style: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:noiseType==="brown"?"#fff":TEXT_DIM, fontSize:13, background:"transparent", zIndex:1 } }, "棕噪音")
-                )
-              )
+              mode === "break"
+                ? React.createElement("div", { style: { flex:1, maxWidth:220, height:38, display:"flex", alignItems:"center", justifyContent:"center", color:TEXT_DIM, fontSize:13 } }, "休息中，声音已暂停 💤")
+                : React.createElement("div", { style: { position:"relative", flex:1, borderRadius:12, background:BTN, height:38, maxWidth:220 } },
+                    React.createElement("div", { style: { position:"absolute", borderRadius:8, top:4, bottom:4, left:noiseType==="rain"?4:"calc(50% + 2px)", width:"calc(50% - 6px)", background:ORANGE, transition:"left .25s cubic-bezier(.4,0,.2,1)" } }),
+                    React.createElement("div", { style: { position:"absolute", inset:0, display:"flex" } },
+                      React.createElement("button", { onClick:()=>changeNoise("rain"), style: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:noiseType==="rain"?"#fff":TEXT_DIM, fontSize:13, background:"transparent", zIndex:1 } }, "雨声"),
+                      React.createElement("button", { onClick:()=>changeNoise("brown"), style: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:noiseType==="brown"?"#fff":TEXT_DIM, fontSize:13, background:"transparent", zIndex:1 } }, "棕噪音")
+                    )
+                  )
             ),
-            React.createElement("div", { style: { display:"flex", alignItems:"center", gap:12, marginTop:12 } },
+            React.createElement("div", { style: { display:"flex", alignItems:"center", gap:12, marginTop:12, ...(mode==="break" ? { pointerEvents:"none", opacity:0.4 } : {}) } },
               React.createElement("button", { onClick:toggleSliderMute, "aria-label":volume>0?"静音":"恢复音量", className:"btn-press-sm",
                 style: { background:"transparent", padding:0, display:"flex", alignItems:"center", flexShrink:0, lineHeight:0 } },
                 React.createElement("svg", { width:"20", height:"20", viewBox:"0 0 24 24", fill:"none", stroke:TEXT_DIM, strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round" },

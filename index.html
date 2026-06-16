@@ -40,6 +40,8 @@
     const glass = { background:"rgba(38,37,30,0.5)", backdropFilter:"blur(20px) saturate(120%)", WebkitBackdropFilter:"blur(20px) saturate(120%)", border:"1px solid rgba(255,255,255,0.08)" };
     const RING_R = 116;
     const RING_C = 2 * Math.PI * RING_R;
+    // 结束提示音的三组节奏起始时间（秒）：每组两声（880 / 659.25），声音与闪光共用此节奏
+    const ALERT_GROUPS = [0, 1.1, 2.2];
 
     const todayStr = () => {
       const d = new Date();
@@ -157,6 +159,8 @@
       const endRef = useRef(null);
       const mutedRef = useRef(muted); mutedRef.current = muted;
       const volRef = useRef(volume); volRef.current = volume;
+      const modeRef = useRef(mode); modeRef.current = mode; // startNoise 用它判断当前是工作还是休息
+      const flashTimersRef = useRef([]); // 结束闪光的定时器，便于重触发时清掉旧的
       const prevVolRef = useRef(0.3); // 记录点喇叭静音前的音量，便于再次点击时恢复
 
       const parseMin = (s, fb) => { const n = parseInt(s,10); return Number.isFinite(n)&&n>=1 ? Math.min(180,n) : fb; };
@@ -198,6 +202,7 @@
       };
 
       const startNoise = (type) => {
+        if(modeRef.current==="break") return; // 休息时段不播放任何背景音
         const a=audio.current; const ctx=getCtx(); stopNoise();
         const t=type||noiseType;
         const master=ctx.createGain(); master.gain.value=mutedRef.current?0:volRef.current;
@@ -238,12 +243,22 @@
         if(mutedRef.current)return;
         try{
           const ctx=getCtx();const t0=ctx.currentTime;
-          [[880,0],[659.25,0.45],[880,1.1],[659.25,1.55],[880,2.2],[659.25,2.65]].forEach(([f,dt])=>{
+          // 每组两声：组起始 880Hz，+0.45s 659.25Hz，共三组
+          const beeps=ALERT_GROUPS.flatMap(t=>[[880,t],[659.25,t+0.45]]);
+          beeps.forEach(([f,dt])=>{
             const o=ctx.createOscillator();o.type="sine";o.frequency.value=f;
             const g=ctx.createGain();g.gain.setValueAtTime(0.0001,t0+dt);g.gain.exponentialRampToValueAtTime(0.4,t0+dt+0.02);g.gain.exponentialRampToValueAtTime(0.0005,t0+dt+0.6);
             o.connect(g);g.connect(ctx.destination);o.start(t0+dt);o.stop(t0+dt+0.7);
           });
         }catch(e){}
+      };
+
+      // 结束闪光：跟提示音三组节奏同步，每组起始闪一下（共 3 下）；静音时也闪，作为视觉提示
+      const triggerFlashes = () => {
+        flashTimersRef.current.forEach(clearTimeout);
+        flashTimersRef.current = ALERT_GROUPS.map(t =>
+          setTimeout(()=>setFlashKey(k=>k+1), t*1000)
+        );
       };
 
       // 系统通知：番茄/休息结束时弹出，即使切到别的标签页也能看到
@@ -264,7 +279,7 @@
       useEffect(()=>{
         if(running&&timeLeft===0){
           const { mode, task, workMin, breakMin } = endMetaRef.current;
-          setRunning(false);setLocked(false);stopNoise();playAlert();setFlashKey(k=>k+1);
+          setRunning(false);setLocked(false);stopNoise();playAlert();triggerFlashes();
           if(mode==="work"){
             const now=new Date();
             const entry={date:todayStr(),time:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,min:activeWorkMinRef.current,task:task.trim()||"未命名任务"};
@@ -340,12 +355,10 @@
             {/* 计时圆盘 */}
             <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center", width:244, height:244, userSelect:"none" }}>
               <style>{`
-                @keyframes disc-pulse {
-                  0%   { transform: scale(1);    box-shadow: 0 0 0 rgba(210,97,60,0);    }
-                  20%  { transform: scale(1.05); box-shadow: 0 0 64px rgba(210,97,60,0.5); }
-                  45%  { transform: scale(1);    box-shadow: 0 0 26px rgba(210,97,60,0.22);}
-                  65%  { transform: scale(1.028);box-shadow: 0 0 46px rgba(210,97,60,0.34);}
-                  100% { transform: scale(1);    box-shadow: 0 0 0 rgba(210,97,60,0);    }
+                @keyframes disc-flash {
+                  0%   { transform: scale(1);    box-shadow: 0 0 0 rgba(210,97,60,0);     }
+                  18%  { transform: scale(1.06); box-shadow: 0 0 60px rgba(210,97,60,0.55);}
+                  100% { transform: scale(1);    box-shadow: 0 0 0 rgba(210,97,60,0);     }
                 }
               `}</style>
               <svg width="244" height="244" viewBox="0 0 244 244" style={{ position:"absolute", inset:0 }}>
@@ -355,7 +368,7 @@
                   transform="translate(244 0) scale(-1 1) rotate(-90 122 122)"
                   style={{ transition:"stroke-dashoffset .3s linear", opacity:0.82 }}/>
               </svg>
-              <div key={flashKey} style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s", animation: flashKey>0 ? "disc-pulse 1.6s cubic-bezier(0.34,1.4,0.5,1)" : "none" }}>
+              <div key={flashKey} style={{ width:210, height:210, borderRadius:"50%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:ORANGE, boxShadow:running?`0 0 50px ${ORANGE}55`:"none", transition:"box-shadow .4s", animation: flashKey>0 ? "disc-flash 0.6s cubic-bezier(0.34,1.4,0.5,1)" : "none" }}>
                 <div style={{ color:"#fff", fontWeight:500, fontSize:60, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums", fontFamily:FONT }}>{fmt}</div>
               </div>
             </div>

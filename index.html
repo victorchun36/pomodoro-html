@@ -149,7 +149,8 @@
       const [showHistory, setShowHistory] = useState(false);
       const [showResetConfirm, setShowResetConfirm] = useState(false);
       const [flashKey, setFlashKey] = useState(0);
-      const [plusOneKey, setPlusOneKey] = useState(0);
+      // 替换原来的 plusOneKey，改用 showPlusOne 控制显示
+      const [showPlusOne, setShowPlusOne] = useState(false);
 
       const audio = useRef({ ctx:null, sources:[], masterGain:null, dropTimer:null, buffers:{} });
       const endRef = useRef(null);
@@ -171,7 +172,7 @@
       const getCtx = useCallback(() => {
         const a = audio.current;
         if (!a.ctx) a.ctx = new (window.AudioContext||window.webkitAudioContext)();
-        if (a.ctx.state==="suspended") a.ctx.resume();
+        if (a.ctx.state==="suspended") a.ctx.resume().catch(()=>{});
         return a.ctx;
       }, []);
 
@@ -258,10 +259,24 @@
         }catch(e){}
       }, []);
 
+      // 计时器：增加页面可见性监听，保证切回时立即刷新时间
       useEffect(()=>{
         if(!running)return;
-        const id=setInterval(()=>{const rem=Math.max(0,Math.ceil((endRef.current-Date.now())/1000));setTimeLeft(rem);},250);
-        return()=>clearInterval(id);
+        const tick = () => {
+          const rem = Math.max(0, Math.ceil((endRef.current - Date.now()) / 1000));
+          setTimeLeft(rem);
+        };
+        const id = setInterval(tick, 250);
+        const handleVisibility = () => {
+          if (document.visibilityState === 'visible') {
+            tick();
+          }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+          clearInterval(id);
+          document.removeEventListener('visibilitychange', handleVisibility);
+        };
       },[running]);
 
       useEffect(()=>{
@@ -273,7 +288,8 @@
             const entry={date:todayStr(),time:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,min:activeWorkMinRef.current,task:task.trim()||"未命名任务"};
             setCount(c=>{const n=c+1;sessionStorage.setItem("pomodoro-count",String(n));return n;});
             setHistory(h=>{const n=[entry,...h].slice(0,50);sessionStorage.setItem("pomodoro-history",JSON.stringify(n));return n;});
-            setPlusOneKey(k=>k+1);
+            // 显示 +1 动画
+            setShowPlusOne(true);
             notify("🍠 番薯钟","工作时间结束，休息一下吧");
             setMode("break");const bd=breakMin*60;setTimeLeft(bd);setTotal(bd);
           } else {
@@ -355,14 +371,18 @@
               React.createElement("div", { style: { color:"#fff", fontWeight:500, fontSize:60, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums", fontFamily:FONT } }, fmt)
             ),
             React.createElement("div", { style: { position:"absolute", top:"50%", left:"50%", transform:"translate(-50%, -50%)", pointerEvents:"none" } },
-              plusOneKey > 0 && React.createElement("span", { key:plusOneKey, style: {
-                display: "inline-block",
-                animation: "plusOne 1.5s ease-out forwards",
-                color: "#fff",
-                fontWeight: 800,
-                fontSize: 18,
-                whiteSpace: "nowrap"
-              } }, "🍠 +1")
+              // 使用 onAnimationEnd 控制动画结束消失
+              showPlusOne && React.createElement("span", {
+                onAnimationEnd: () => setShowPlusOne(false),
+                style: {
+                  display: "inline-block",
+                  animation: "plusOne 1.5s ease-out forwards",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 18,
+                  whiteSpace: "nowrap"
+                }
+              }, "🍠 +1")
             )
           ),
           React.createElement("div", { style: { display:"flex", gap:12, width:"100%", opacity:locked?0.55:1, transition:"opacity .2s" } },

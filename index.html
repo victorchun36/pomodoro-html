@@ -100,9 +100,9 @@
           }
           @keyframes snipL {
             0%   { transform: rotate(0deg); }
-            20%  { transform: rotate(-18deg); }   /* 快夹 */
+            20%  { transform: rotate(-18deg); }
             50%  { transform: rotate(-18deg); }
-            100% { transform: rotate(0deg); }     /* 慢放 */
+            100% { transform: rotate(0deg); }
           }
           @keyframes snipR {
             0%   { transform: rotate(0deg); }
@@ -139,7 +139,7 @@
           .claw-r {
             transform-origin: 10% 85%;
             animation: snipR 1.3s ease-in-out infinite;
-            animation-delay: 0.4s;   /* 错开相位 */
+            animation-delay: 0.4s;
           }
         `),
         React.createElement("div", {
@@ -162,7 +162,6 @@
                   React.createElement("rect", { x:"20", y:"6", width:"4", height:"1", fill:"#E2795B" }),
                   React.createElement("rect", { x:"19", y:"5", width:"3", height:"3", fill:"#D2613C" })
                 ),
-                // 身体部分保持不变
                 React.createElement("rect", { x:"5", y:"7", width:"1", height:"2", fill:"#C05B3F" }),
                 React.createElement("rect", { x:"18", y:"7", width:"1", height:"2", fill:"#C05B3F" }),
                 React.createElement("rect", { x:"7", y:"8", width:"10", height:"1", fill:"#E2795B" }),
@@ -201,10 +200,9 @@
       const [showHistory, setShowHistory] = useState(false);
       const [showResetConfirm, setShowResetConfirm] = useState(false);
       const [flashKey, setFlashKey] = useState(0);
-      // 替换原来的 plusOneKey，改用 showPlusOne 控制显示
       const [showPlusOne, setShowPlusOne] = useState(false);
 
-      const audio = useRef({ ctx:null, sources:[], masterGain:null, dropTimer:null, buffers:{} });
+      const audio = useRef({ ctx:null, sources:[], masterGain:null, dropTimer:null, buffers:{}, noiseId:0 });
       const endRef = useRef(null);
       const mutedRef = useRef(muted); mutedRef.current = muted;
       const volRef = useRef(volume); volRef.current = volume;
@@ -221,10 +219,21 @@
       const endMetaRef = useRef({ mode, task, workMin, breakMin });
       endMetaRef.current = { mode, task, workMin, breakMin };
 
+      // 同步创建/恢复 ctx（用于短音效，无需等待）
       const getCtx = useCallback(() => {
         const a = audio.current;
         if (!a.ctx) a.ctx = new (window.AudioContext||window.webkitAudioContext)();
         if (a.ctx.state==="suspended") a.ctx.resume().catch(()=>{});
+        return a.ctx;
+      }, []);
+
+      // 异步确保 ctx 已恢复（用于持续噪音，必须等待）
+      const ensureCtx = useCallback(async () => {
+        const a = audio.current;
+        if (!a.ctx) a.ctx = new (window.AudioContext||window.webkitAudioContext)();
+        if (a.ctx.state === "suspended") {
+          await a.ctx.resume();
+        }
         return a.ctx;
       }, []);
 
@@ -239,21 +248,40 @@
 
       const getBuf = useCallback((t) => { const a=audio.current; if(!a.buffers[t]) a.buffers[t]=makeBuffer(t); return a.buffers[t]; }, [makeBuffer]);
 
+      // 预热 buffer，避免首次播放时主线程卡顿
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          try {
+            getBuf("pink");
+            getBuf("brown");
+            getBuf("white");
+          } catch (e) {}
+        }, 200);
+        return () => clearTimeout(timer);
+      }, [getBuf]);
+
       const stopNoise = useCallback(() => {
         const a=audio.current; a.sources.forEach(s=>{try{s.stop();}catch(e){}});
         a.sources=[]; a.masterGain=null;
         if(a.dropTimer){clearInterval(a.dropTimer);a.dropTimer=null;}
       }, []);
 
-      const startNoise = useCallback((type) => {
-        if(modeRef.current==="break") return;
-        const a=audio.current; const ctx=getCtx(); stopNoise();
-        const t=type||noiseType;
-        const master=ctx.createGain(); master.gain.value=mutedRef.current?0:volRef.current;
-        master.connect(ctx.destination); a.masterGain=master;
+      const startNoise = useCallback(async (type) => {
+        if (modeRef.current==="break") return;
+        const a = audio.current;
+        const id = ++a.noiseId;        // 防止快速点击导致的竞态
+        await ensureCtx();              // 等待 AudioContext 真正 running
+        if (id !== a.noiseId) return;   // 此调用已被后续操作取消
+
+        stopNoise();                    // 清理旧节点
+        const ctx = a.ctx;
+        const t = type || noiseType;
+        const master = ctx.createGain(); master.gain.value = mutedRef.current ? 0 : volRef.current;
+        master.connect(ctx.destination); a.masterGain = master;
         const loopSrc=(buf)=>{const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;a.sources.push(s);return s;};
-        if(t==="brown"){const src=loopSrc(getBuf("brown"));src.connect(master);src.start();}
-        else {
+        if (t==="brown"){
+          const src=loopSrc(getBuf("brown")); src.connect(master); src.start();
+        } else {
           const bed=loopSrc(getBuf("pink")); const bedLp=ctx.createBiquadFilter(); bedLp.type="lowpass"; bedLp.frequency.value=1300;
           const bedG=ctx.createGain(); bedG.gain.value=0.9; bed.connect(bedLp);bedLp.connect(bedG);bedG.connect(master);bed.start();
           const hiss=loopSrc(getBuf("white")); const bp=ctx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=5200; bp.Q.value=0.8;
@@ -263,7 +291,7 @@
             for(let i=0;i<n;i++){const t0=ctx.currentTime+Math.random()*0.12;const o=ctx.createOscillator();o.type="sine";const f=500+Math.random()*2200;o.frequency.setValueAtTime(f,t0);o.frequency.exponentialRampToValueAtTime(f*0.6,t0+0.06);const g=ctx.createGain();const v=0.04+Math.random()*0.1;g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(v,t0+0.005);g.gain.exponentialRampToValueAtTime(0.0001,t0+0.05+Math.random()*0.06);o.connect(g);g.connect(a.masterGain);o.start(t0);o.stop(t0+0.18);}
           },130);
         }
-      }, [noiseType, getCtx, stopNoise, getBuf]);
+      }, [noiseType, ensureCtx, stopNoise, getBuf]);
 
       const playClick = useCallback(() => {
         if(mutedRef.current)return;
@@ -311,7 +339,6 @@
         }catch(e){}
       }, []);
 
-      // 计时器：增加页面可见性监听，保证切回时立即刷新时间
       useEffect(()=>{
         if(!running)return;
         const tick = () => {
@@ -340,7 +367,6 @@
             const entry={date:todayStr(),time:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,min:activeWorkMinRef.current,task:task.trim()||"未命名任务"};
             setCount(c=>{const n=c+1;sessionStorage.setItem("pomodoro-count",String(n));return n;});
             setHistory(h=>{const n=[entry,...h].slice(0,50);sessionStorage.setItem("pomodoro-history",JSON.stringify(n));return n;});
-            // 显示 +1 动画
             setShowPlusOne(true);
             notify("🍠 番薯钟","工作时间结束，休息一下吧");
             setMode("break");const bd=breakMin*60;setTimeLeft(bd);setTotal(bd);
@@ -360,13 +386,21 @@
 
       const clearHistory = useCallback(()=>{playClick();setHistory([]);setCount(0);sessionStorage.removeItem("pomodoro-history");sessionStorage.removeItem("pomodoro-count");}, [playClick]);
 
-      const togglePlay = useCallback(()=>{
+      const togglePlay = useCallback(async () => {
         playClick();
-        if(running){setRunning(false);stopNoise();}
-        else{
+        if(running){
+          setRunning(false);
+          stopNoise();
+        } else {
           if(!locked&&mode==="work")activeWorkMinRef.current=workMin;
           if("Notification" in window && Notification.permission==="default"){try{Notification.requestPermission();}catch(e){}}
-          const t=timeLeft===0?curDuration:timeLeft;if(timeLeft===0){setTimeLeft(curDuration);setTotal(curDuration);}endRef.current=Date.now()+t*1000;setLocked(true);setRunning(true);startNoise();
+          const t=timeLeft===0?curDuration:timeLeft;
+          if(timeLeft===0){setTimeLeft(curDuration);setTotal(curDuration);}
+          // 等待噪音启动后再开始计时，消除声音延迟
+          await startNoise();
+          endRef.current=Date.now()+t*1000;
+          setLocked(true);
+          setRunning(true);
         }
       }, [running, locked, mode, workMin, timeLeft, curDuration, playClick, stopNoise, startNoise]);
 
@@ -378,7 +412,12 @@
       const switchMode = useCallback((m)=>{if(locked)return;playClick();if(m===mode)return;setRunning(false);stopNoise();setMode(m);const dur=(m==="work"?workMin:breakMin)*60;setTimeLeft(dur);setTotal(dur);}, [locked, mode, workMin, breakMin, playClick, stopNoise]);
       const toggleMute = useCallback(()=>{const next=!muted;setMuted(next);mutedRef.current=next;if(!next)playClick();}, [muted, playClick]);
       const toggleSliderMute = useCallback(()=>{playClick();if(volume>0){prevVolRef.current=volume;setVolume(0);}else{setVolume(prevVolRef.current>0?prevVolRef.current:0.3);}}, [volume, playClick]);
-      const changeNoise = useCallback((t)=>{if(t===noiseType)return;playClick();setNoiseType(t);if(running)startNoise(t);}, [noiseType, running, playClick, startNoise]);
+      const changeNoise = useCallback(async (t)=>{
+        if(t===noiseType)return;
+        playClick();
+        setNoiseType(t);
+        if(running) await startNoise(t);
+      }, [noiseType, running, playClick, startNoise]);
 
       const onWorkChange = useCallback((v)=>{setWorkStr(v);const n=parseInt(v,10);if(!locked&&mode==="work"&&Number.isFinite(n)&&n>=1){const s=Math.min(180,n)*60;setTimeLeft(s);setTotal(s);}}, [locked, mode]);
       const onBreakChange = useCallback((v)=>{setBreakStr(v);const n=parseInt(v,10);if(!locked&&mode==="break"&&Number.isFinite(n)&&n>=1){const s=Math.min(180,n)*60;setTimeLeft(s);setTotal(s);}}, [locked, mode]);
@@ -423,7 +462,6 @@
               React.createElement("div", { style: { color:"#fff", fontWeight:500, fontSize:60, lineHeight:1, letterSpacing:1, fontVariantNumeric:"tabular-nums", fontFamily:FONT } }, fmt)
             ),
             React.createElement("div", { style: { position:"absolute", top:"50%", left:"50%", transform:"translate(-50%, -50%)", pointerEvents:"none" } },
-              // 使用 onAnimationEnd 控制动画结束消失
               showPlusOne && React.createElement("span", {
                 onAnimationEnd: () => setShowPlusOne(false),
                 style: {

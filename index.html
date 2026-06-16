@@ -502,18 +502,56 @@
     }
  
     const MotivationalQuote = ({ phase }) => {
-  // ...（逻辑部分完全不变，只改 containerStyle）...
+  const [currentQuote, setCurrentQuote] = useState("");
+  const [visible, setVisible] = useState(true);
+  const timerRef = useRef(null);
+  const fadeRef = useRef(null);
+  const lastQuoteRef = useRef(null);
+
+  useEffect(() => {
+    clearInterval(timerRef.current);
+    clearTimeout(fadeRef.current);
+
+    if (phase === "resting") {
+      setCurrentQuote("休息中...");
+      setVisible(true);
+      return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
+    }
+
+    const pool = phase === "focus" ? FOCUS_QUOTES
+               : phase === "finish" ? FINISH_QUOTES
+               : START_QUOTES;
+
+    const setNewQuote = () => {
+      const next = pickRandom(pool, lastQuoteRef.current);
+      lastQuoteRef.current = next;
+      setCurrentQuote(next);
+      setVisible(true);
+    };
+
+    setVisible(false);
+    fadeRef.current = setTimeout(setNewQuote, 400);
+
+    if (phase !== "finish") {
+      timerRef.current = setInterval(() => {
+        setVisible(false);
+        fadeRef.current = setTimeout(setNewQuote, 400);
+      }, 20000);
+    }
+
+    return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
+  }, [phase]);
 
   const containerStyle = {
-    background: "rgba(210,97,60,0.13)",          // 暖橙实底，比之前更显眼
+    background: "rgba(210,97,60,0.13)",
     borderRadius: 12,
     padding: "16px 24px",
     opacity: visible ? 1 : 0,
     transition: "opacity 0.4s ease",
     textAlign: "center",
-    color: "#F2EFE9",                            // 更亮的文字
+    color: "#F2EFE9",
     fontSize: 22,
-    fontWeight: 600,                              // 加粗
+    fontWeight: 600,
     minHeight: 52,
     display: "flex",
     flexDirection: "column",
@@ -521,12 +559,11 @@
     justifyContent: "center",
     userSelect: "none",
     letterSpacing: "0.08em",
-    textShadow: "0 2px 6px rgba(0,0,0,0.5)",     // 更深阴影
+    textShadow: "0 2px 6px rgba(0,0,0,0.5)",
     border: "1px solid rgba(210,97,60,0.15)",
     gap: 8
   };
 
-  // 在返回的 JSX 中，将文字和装饰下划线包裹成两行
   return h("div", { style: containerStyle },
     h("span", null, currentQuote),
     h("span", { style: {

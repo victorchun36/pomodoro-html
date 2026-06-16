@@ -295,8 +295,8 @@
           }
           @keyframes clawd-stumble {
             0%   { transform: rotate(0deg); }
-            4%   { transform: rotate(22deg); }
-            9%   { transform: rotate(-4deg); }
+            4%   { transform: rotate(14deg); }
+            9%   { transform: rotate(-2.5deg); }
             14%  { transform: rotate(1deg); }
             18%  { transform: rotate(0deg); }
             100% { transform: rotate(0deg); }
@@ -310,8 +310,7 @@
             will-change: transform;
           }
           .clawd-lookback {
-            animation: clawd-lookback 9s ease-in-out infinite;
-            animation-delay: calc(-9s * var(--seed, 0));
+            animation: none;
             will-change: transform;
           }
           .clawd-stumble {
@@ -402,9 +401,9 @@
             animation: blink-sleepy 7s ease-in-out infinite !important;
           }
           @keyframes blink-sleepy {
-            0%, 55%, 100% { transform: scaleY(0.12); }
+            0%, 55%, 100% { transform: scaleY(0); }
             62%, 68% { transform: scaleY(1); }
-            75%, 100% { transform: scaleY(0.12); }
+            75%, 100% { transform: scaleY(0); }
           }
           .mouth {
             animation: yawn-mouth 9s ease-in-out infinite;

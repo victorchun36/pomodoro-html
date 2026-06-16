@@ -110,9 +110,9 @@
         .claw-l{animation-duration:4.2s!important}
         .claw-r{animation-duration:4.2s!important;animation-delay:1.3s!important}
         .eye-open{animation:blink-sleepy-eye 7s ease-in-out infinite!important}
-        .eye-closed{animation:blink-sleepy-line 7s ease-in-out infinite!important;opacity:1!important}
+        .eye-closed {animation: blink-sleepy-line 7s ease-in-out infinite !important;transform-box: fill-box;transform-origin: 10px 2.2px;   /* 待会我们再改成更好的值 */opacity: 1 !important;}
         @keyframes blink-sleepy-eye{0%,55%,100%{transform:scaleY(0)}62%,68%{transform:scaleY(1)}75%,100%{transform:scaleY(0)}}
-        @keyframes blink-sleepy-line{0%,55%,100%{transform:scaleY(1)}62%,68%{transform:scaleY(0)}75%,100%{transform:scaleY(1)}}
+        @keyframes blink-sleepy-line{0%,55%,100%{transform:scaleY(1)}62%,68%{transform:scaleY(0.5)}75%,100%{transform:scaleY(1)}}
         .mouth{animation:yawn-mouth 7s ease-in-out infinite}
         @keyframes yawn-mouth{0%,45%,82%,100%{transform:scaleY(1)}58%,68%{transform:scaleY(3.2)}}
       ` : `.eye-open{animation:blink 3.5s ease-in-out infinite!important}.eye-closed{opacity:0!important}.mouth{animation:none}.zzz-bubble{display:none}`;
@@ -162,7 +162,7 @@
                       rect({x:"9",y:"10",width:"2",height:"2",fill:"#FFFFFF"}),
                       rect({className:"clawd-pupil",x:"10",y:"11",width:"1",height:"1",fill:"#1C1B17"})
                     ),
-                    rect({className:"eye-closed",x:"9",y:"10",width:"2",height:"1",fill:"#1C1B17"})
+                    rect({className:"eye-closed",x:"9",y:"11",width:"2",height:"0.15",fill:"#1C1B17"})
                   ),
                   // 右眼（带闭眼线）
                   h("g",{className:"eye"},
@@ -170,7 +170,7 @@
                       rect({x:"13",y:"10",width:"2",height:"2",fill:"#FFFFFF"}),
                       rect({className:"clawd-pupil",x:"14",y:"11",width:"1",height:"1",fill:"#1C1B17"})
                     ),
-                    rect({className:"eye-closed",x:"13",y:"10",width:"2",height:"1",fill:"#1C1B17"})
+                    rect({className:"eye-closed",x:"13",y:"11",width:"2",height:"0.15",fill:"#1C1B17"})
                   ),
                   rect({x:"11",y:"13",width:"2",height:"1",fill:"#C05B3F",className:"mouth"}),
                   rect({x:"7",y:"16",width:"1",height:"2",fill:"#C05B3F"}),

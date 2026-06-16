@@ -552,7 +552,7 @@
         if (textRef.current) {
           const w = textRef.current.offsetWidth;
           // 细线长度为文字宽度的 40%，限制最小 16px 最大 64px
-          setLineWidth(Math.min(9999, Math.max(16, Math.round(w * 0.7))));
+          setLineWidth(Math.min(9999, Math.max(16, Math.round(w * 0.4))));
         }
       });
     }

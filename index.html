@@ -406,12 +406,11 @@
             75%, 100% { transform: scaleY(0); }
           }
           .mouth {
-            animation: yawn-mouth 9s ease-in-out infinite;
+            animation: yawn-mouth 7s ease-in-out infinite;
           }
           @keyframes yawn-mouth {
-            0%, 48%, 100% { transform: scaleY(1); }
-            53%, 62% { transform: scaleY(3.2); }
-            70%, 100% { transform: scaleY(1); }
+            0%, 45%, 82%, 100% { transform: scaleY(1); }
+            58%, 68%           { transform: scaleY(3.2); }
           }
           ` : `
           .eye {
@@ -643,12 +642,26 @@
             );
         };
 
+        const playTone = (ctx, t, dest, freq, gainStart, gainEnd, rampDur, stopDur) => {
+            const o = ctx.createOscillator();
+            o.type = "sine";
+            o.frequency.value = freq;
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(gainStart, t);
+            g.gain.exponentialRampToValueAtTime(gainEnd, t + rampDur);
+            o.connect(g);
+            g.connect(dest);
+            o.start(t);
+            o.stop(t + stopDur);
+        };
+
         function PomodoroApp() {
             const [mode, setMode] = useState("work");
             const [workStr, setWorkStr] = useState("25");
             const [breakStr, setBreakStr] = useState("5");
             const [timeLeft, setTimeLeft] = useState(25 * 60);
             const [total, setTotal] = useState(25 * 60);
+            const setDuration = useCallback((s) => { setTimeLeft(s); setTotal(s); }, []);
             const [running, setRunning] = useState(false);
             const [locked, setLocked] = useState(false);
             const [muted, setMuted] = useState(false);
@@ -710,13 +723,10 @@
             }, []);
 
             const ensureCtx = useCallback(async () => {
-                const a = audio.current;
-                if (!a.ctx) a.ctx = new(window.AudioContext || window.webkitAudioContext)();
-                if (a.ctx.state === "suspended") {
-                    await a.ctx.resume();
-                }
-                return a.ctx;
-            }, []);
+                const ctx = getCtx();
+                if (ctx.state === "suspended") await ctx.resume();
+                return ctx;
+            }, [getCtx]);
 
             const makeBuffer = useCallback((type) => {
                 const ctx = getCtx();
@@ -885,26 +895,8 @@
                     bp.connect(g1);
                     g1.connect(ctx.destination);
                     src.start(t);
-                    const osc = ctx.createOscillator();
-                    osc.type = "sine";
-                    osc.frequency.value = 3500;
-                    const g2 = ctx.createGain();
-                    g2.gain.setValueAtTime(0.18, t);
-                    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
-                    osc.connect(g2);
-                    g2.connect(ctx.destination);
-                    osc.start(t);
-                    osc.stop(t + 0.015);
-                    const osc2 = ctx.createOscillator();
-                    osc2.type = "sine";
-                    osc2.frequency.value = 800;
-                    const g3 = ctx.createGain();
-                    g3.gain.setValueAtTime(0.06, t);
-                    g3.gain.exponentialRampToValueAtTime(0.0001, t + 0.008);
-                    osc2.connect(g3);
-                    g3.connect(ctx.destination);
-                    osc2.start(t);
-                    osc2.stop(t + 0.01);
+                    playTone(ctx, t, ctx.destination, 3500, 0.18,  0.0001, 0.012, 0.015);
+                    playTone(ctx, t, ctx.destination, 800,  0.06,  0.0001, 0.008, 0.01);
                 } catch (e) {}
             }, [getCtx]);
 
@@ -1005,15 +997,11 @@
                         setShowPlusOne(true);
                         notify("🍠 番薯钟", "工作时间结束，休息一下吧");
                         setMode("break");
-                        const bd = breakMin * 60;
-                        setTimeLeft(bd);
-                        setTotal(bd);
+                        setDuration(breakMin * 60);
                     } else {
                         notify("🍠 番薯钟", "休息结束，开始下一个番薯钟");
                         setMode("work");
-                        const wd = workMin * 60;
-                        setTimeLeft(wd);
-                        setTotal(wd);
+                        setDuration(workMin * 60);
                     }
                 }
             }, [timeLeft, running, stopNoise, playAlert, triggerFlashes, notify]);
@@ -1056,8 +1044,7 @@
                     }
                     const t = timeLeft === 0 ? curDuration : timeLeft;
                     if (timeLeft === 0) {
-                        setTimeLeft(curDuration);
-                        setTotal(curDuration);
+                        setDuration(curDuration);
                     }
                     await startNoise();
                     endRef.current = Date.now() + t * 1000;
@@ -1070,8 +1057,7 @@
                 setRunning(false);
                 setLocked(false);
                 stopNoise();
-                setTimeLeft(curDuration);
-                setTotal(curDuration);
+                setDuration(curDuration);
             }, [curDuration, stopNoise]);
             const handleResetClick = useCallback(() => {
                 playClick();
@@ -1094,9 +1080,7 @@
                 setRunning(false);
                 stopNoise();
                 setMode(m);
-                const dur = (m === "work" ? workMin : breakMin) * 60;
-                setTimeLeft(dur);
-                setTotal(dur);
+                setDuration((m === "work" ? workMin : breakMin) * 60);
             }, [locked, mode, workMin, breakMin, playClick, stopNoise]);
             const toggleMute = useCallback(() => {
                 const next = !muted;
@@ -1123,30 +1107,20 @@
             const onWorkChange = useCallback((v) => {
                 setWorkStr(v);
                 const n = parseInt(v, 10);
-                if (!locked && mode === "work" && Number.isFinite(n) && n >= 1) {
-                    const s = Math.min(180, n) * 60;
-                    setTimeLeft(s);
-                    setTotal(s);
-                }
-            }, [locked, mode]);
+                if (!locked && mode === "work" && Number.isFinite(n) && n >= 1)
+                    setDuration(Math.min(180, n) * 60);
+            }, [locked, mode, setDuration]);
             const onBreakChange = useCallback((v) => {
                 setBreakStr(v);
                 const n = parseInt(v, 10);
-                if (!locked && mode === "break" && Number.isFinite(n) && n >= 1) {
-                    const s = Math.min(180, n) * 60;
-                    setTimeLeft(s);
-                    setTotal(s);
-                }
-            }, [locked, mode]);
+                if (!locked && mode === "break" && Number.isFinite(n) && n >= 1)
+                    setDuration(Math.min(180, n) * 60);
+            }, [locked, mode, setDuration]);
             const applyPreset = useCallback((w, b) => {
                 playClick();
                 setWorkStr(String(w));
                 setBreakStr(String(b));
-                if (!locked) {
-                    const s = (mode === "work" ? w : b) * 60;
-                    setTimeLeft(s);
-                    setTotal(s);
-                }
+                if (!locked) setDuration((mode === "work" ? w : b) * 60);
             }, [locked, mode, playClick]);
 
             const fmt =

@@ -259,7 +259,9 @@
         });
 
         const Clawd = ({
-            isBreak = false
+            isBreak = false,
+            isUrgent = false,
+            isCelebrating = false
         }) => {
             const seed = useMemo(() => Math.random(), []);
             const seed2 = useMemo(() => Math.random(), []);
@@ -421,11 +423,58 @@
           }
           `;
 
+            const cssUrgent = isUrgent ? `
+          .clawd-walk {
+            animation-duration: 22s !important;
+          }
+          .clawd-bob {
+            animation-duration: 0.28s !important;
+          }
+          .claw-l {
+            animation-duration: 0.55s !important;
+          }
+          .claw-r {
+            animation-duration: 0.55s !important;
+            animation-delay: 0.15s !important;
+          }
+          @keyframes blink-wide {
+            0%, 85%, 100% { transform: scaleY(1.25); }
+            90%           { transform: scaleY(0.1); }
+          }
+          .eye {
+            animation: blink-wide 2.2s ease-in-out infinite !important;
+          }
+          .clawd-pupil {
+            animation-duration: 4s !important;
+          }
+          ` : ``;
+
+            const cssCelebrate = isCelebrating ? `
+          @keyframes celebrate-jump {
+            0%   { transform: translateY(0)     rotate(0deg); }
+            20%  { transform: translateY(-22px) rotate(-6deg); }
+            40%  { transform: translateY(-24px) rotate(6deg); }
+            60%  { transform: translateY(-14px) rotate(-3deg); }
+            80%  { transform: translateY(-6px)  rotate(2deg); }
+            100% { transform: translateY(0)     rotate(0deg); }
+          }
+          .clawd-bob {
+            animation: celebrate-jump 0.38s ease-out 4 !important;
+          }
+          .claw-l {
+            animation-duration: 0.3s !important;
+          }
+          .claw-r {
+            animation-duration: 0.3s !important;
+            animation-delay: 0.08s !important;
+          }
+          ` : ``;
+
             const cssZzzHide = isBreak ? `` : `
           .zzz-bubble { display: none; }
           `;
 
-            const fullCSS = cssBase + cssBreak + cssZzzHide;
+            const fullCSS = cssBase + cssBreak + cssUrgent + cssCelebrate + cssZzzHide;
 
             return React.createElement(React.Fragment, null,
                 React.createElement("style", null, fullCSS),
@@ -674,6 +723,8 @@
             const [showResetConfirm, setShowResetConfirm] = useState(false);
             const [flashKey, setFlashKey] = useState(0);
             const [showPlusOne, setShowPlusOne] = useState(false);
+            const [isUrgent, setIsUrgent] = useState(false);
+            const [isCelebrating, setIsCelebrating] = useState(false);
 
             const audio = useRef({
                 ctx: null,
@@ -949,6 +1000,7 @@
                 const tick = () => {
                     const rem = Math.max(0, Math.ceil((endRef.current - Date.now()) / 1000));
                     setTimeLeft(rem);
+                    setIsUrgent(modeRef.current === "work" && rem > 0 && rem <= 60);
                 };
                 const id = setInterval(tick, 250);
                 const handleVisibility = () => {
@@ -973,6 +1025,9 @@
                     } = endMetaRef.current;
                     setRunning(false);
                     setLocked(false);
+                    setIsUrgent(false);
+                    setIsCelebrating(true);
+                    setTimeout(() => setIsCelebrating(false), 1600);
                     stopNoise();
                     playAlert();
                     triggerFlashes();
@@ -1151,7 +1206,9 @@
                     }
                 },
                 React.createElement(Clawd, {
-                    isBreak: mode === "break"
+                    isBreak: mode === "break",
+                    isUrgent: isUrgent,
+                    isCelebrating: isCelebrating,
                 }),
                 React.createElement("div", {
                         style: {

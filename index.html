@@ -502,70 +502,77 @@
     }
  
     const MotivationalQuote = ({ phase }) => {
-      const [currentQuote, setCurrentQuote] = useState("");
-      const [visible, setVisible] = useState(true);
-      const timerRef = useRef(null);   // 20s 轮播定时器
-      const fadeRef = useRef(null);    // 400ms 淡入/换词定时器（必须随 phase 变化清理）
-      const lastQuoteRef = useRef(null);
- 
-      useEffect(() => {
-        clearInterval(timerRef.current);
-        clearTimeout(fadeRef.current);
- 
-        if (phase === "resting") {
-          setCurrentQuote("休息中...");
-          setVisible(true);
-          return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
-        }
- 
-        const pool = phase === "focus" ? FOCUS_QUOTES
-                   : phase === "finish" ? FINISH_QUOTES
-                   : START_QUOTES;
- 
-        const setNewQuote = () => {
-          const next = pickRandom(pool, lastQuoteRef.current);
-          lastQuoteRef.current = next;
-          setCurrentQuote(next);
-          setVisible(true);
-        };
- 
-        // 初始：先淡出，再换词淡入
+  const [currentQuote, setCurrentQuote] = useState("");
+  const [visible, setVisible] = useState(true);
+  const timerRef = useRef(null);
+  const fadeRef = useRef(null);
+  const lastQuoteRef = useRef(null);
+
+  useEffect(() => {
+    clearInterval(timerRef.current);
+    clearTimeout(fadeRef.current);
+
+    if (phase === "resting") {
+      setCurrentQuote("休息中...");
+      setVisible(true);
+      return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
+    }
+
+    const pool = phase === "focus" ? FOCUS_QUOTES
+               : phase === "finish" ? FINISH_QUOTES
+               : START_QUOTES;
+
+    const setNewQuote = () => {
+      const next = pickRandom(pool, lastQuoteRef.current);
+      lastQuoteRef.current = next;
+      setCurrentQuote(next);
+      setVisible(true);
+    };
+
+    setVisible(false);
+    fadeRef.current = setTimeout(setNewQuote, 400);
+
+    if (phase !== "finish") {
+      timerRef.current = setInterval(() => {
         setVisible(false);
         fadeRef.current = setTimeout(setNewQuote, 400);
- 
-        // 非 finish 时每 20s 轮播
-        if (phase !== "finish") {
-          timerRef.current = setInterval(() => {
-            setVisible(false);
-            fadeRef.current = setTimeout(setNewQuote, 400);
-          }, 20000);
-        }
- 
-        return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
-      }, [phase]);
- 
-      // 升级为玻璃卡片样式，与现有卡片一致，并增加字间距和文本阴影
-      const containerStyle = {
-        ...glass,
-        width: "100%",
-        borderRadius: 16,
-        padding: "16px 20px",
-        opacity: visible ? 1 : 0,
-        transition: "opacity 0.4s ease",
-        textAlign: "center",
-        color: TEXT_MAIN,
-        fontSize: 20,
-        minHeight: 48,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        userSelect: "none",
-        letterSpacing: "0.05em",        // 字间距
-        textShadow: "0 1px 3px rgba(0,0,0,0.4)"  // 文本阴影
-      };
- 
-      return h("div", { style: containerStyle }, currentQuote);
-    };
+      }, 20000);
+    }
+
+    return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
+  }, [phase]);
+
+  // 🎋 Forest 极简容器：极淡暖色背景，无边框，底部像素风🍠
+  const containerStyle = {
+    background: "rgba(210,97,60,0.06)",   // 几乎不可见的暖色
+    borderRadius: 12,
+    padding: "14px 22px 10px",            // 底部稍紧以容纳小图标
+    opacity: visible ? 1 : 0,
+    transition: "opacity 0.4s ease",
+    textAlign: "center",
+    color: TEXT_MAIN,
+    fontSize: 18,
+    minHeight: 48,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    userSelect: "none",
+    letterSpacing: "0.05em",
+    textShadow: "0 1px 3px rgba(0,0,0,0.4)"
+  };
+
+  return h("div", { style: containerStyle },
+    h("span", null, currentQuote),
+    h("span", { style: {
+      fontSize: 14,
+      marginTop: 4,
+      opacity: 0.5,
+      lineHeight: 1,
+      filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))"
+    } }, "🍠")
+  );
+};
  
     /* ===================== 主应用 ===================== */
     function PomodoroApp() {

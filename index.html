@@ -25,7 +25,7 @@
   <div id="root"></div>
   <script>
     const { useState, useEffect, useRef, useCallback, useReducer, useMemo, createElement: h, Fragment } = React;
-
+ 
     /* ===================== 设计 token ===================== */
     const COLORS = { ORANGE:"#D2613C", BG:"#1C1B17", CARD:"#27261F", BTN:"#2F2E27", TEXT_DIM:"#8E8C84", TEXT_MAIN:"#E8E6DF" };
     const { ORANGE, CARD, BTN, TEXT_DIM, TEXT_MAIN } = COLORS;
@@ -34,7 +34,12 @@
     const RING_R = 116, RING_C = 2 * Math.PI * RING_R;
     const ALERT_GROUPS = [0, 1.1, 2.2];
     const PRESETS = [["25:5",25,5], ["50:10",50,10], ["90:20",90,20]];
-
+    // 复用样式（去重）
+    const card = { width:"100%", borderRadius:16, padding:16, ...glass };
+    const cardTitle = { color:TEXT_MAIN, fontSize:16, fontWeight:700, whiteSpace:"nowrap" };
+    const statNum = { color:TEXT_MAIN, fontWeight:800, fontSize:22, lineHeight:1.1, fontFamily:FONT };
+    const dimXS = { color:TEXT_DIM, fontSize:11 };
+ 
     /* ===================== 安全存储（本地用 sessionStorage，沙箱里自动退回内存） ===================== */
     const _mem = {};
     const store = {
@@ -42,7 +47,7 @@
       set(k,v){ try { sessionStorage.setItem(k,v); } catch(e){ _mem[k]=v; } },
       remove(k){ try { sessionStorage.removeItem(k); } catch(e){ delete _mem[k]; } },
     };
-
+ 
     /* ===================== 工具函数 ===================== */
     const pad2 = (n) => String(n).padStart(2,"0");
     const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
@@ -51,7 +56,7 @@
     const fmtTotalCN = (min) => { if(min<=0) return "0分钟"; const hh=Math.floor(min/60), m=min%60; return hh===0?`${m}分钟`:m===0?`${hh}小时`:`${hh}小时${m}分钟`; };
     const fmtMMSS = (s) => `${pad2(Math.floor(s/60))}:${pad2(s%60)}`;
     const parseMin = (s, fb) => { const n=parseInt(s,10); return Number.isFinite(n)&&n>=1 ? Math.min(180,n) : fb; };
-
+ 
     /* ===================== 图标 ===================== */
     const ICONS = {
       Play:[["polygon",{points:"6 3 20 12 6 21 6 3"}]],
@@ -69,19 +74,19 @@
       return data ? h("svg",{xmlns:"http://www.w3.org/2000/svg",width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round",style},
         data.map(([tag,attrs],i)=>h(tag,{key:i,...attrs}))) : null;
     };
-
+ 
     /* ===================== Clawd 像素蟹（嵌套结构以叠加多层 transform 动画） ===================== */
     const Clawd = ({ isBreak=false, isUrgent=false, isCelebrating=false }) => {
       const seed = useMemo(()=>Math.random(),[]);
       const seed2 = useMemo(()=>Math.random(),[]);
       const zzzDelays = useMemo(()=>[0,1.6,3.2],[]);
-
+ 
       const cssBase = `
         @keyframes clawd-walk{0%{transform:translateX(-90px)}100%{transform:translateX(calc(100vw + 90px))}}
         @keyframes clawd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
         @keyframes snipL{0%{transform:rotate(0)}20%{transform:rotate(-18deg)}50%{transform:rotate(-18deg)}100%{transform:rotate(0)}}
         @keyframes snipR{0%{transform:rotate(0)}20%{transform:rotate(18deg)}50%{transform:rotate(18deg)}100%{transform:rotate(0)}}
-        @keyframes clawd-stumble{0%{transform:rotate(0)}4%{transform:rotate(14deg)}9%{transform:rotate(-2.5deg)}14%{transform:rotate(1deg)}18%{transform:rotate(0)}100%{transform:rotate(0)}}
+        @keyframes clawd-stumble{0%{transform:rotate(0)}4%{transform:rotate(10deg)}9%{transform:rotate(-2.5deg)}14%{transform:rotate(1deg)}18%{transform:rotate(0)}100%{transform:rotate(0)}}
         .clawd-walk{animation:clawd-walk 40s linear infinite;will-change:transform}
         .clawd-bob{animation:clawd-bob .5s ease-in-out infinite;will-change:transform}
         .clawd-lookback{will-change:transform}
@@ -123,7 +128,7 @@
         .claw-l{animation-duration:.3s!important}
         .claw-r{animation-duration:.3s!important;animation-delay:.08s!important}
       ` : ``;
-
+ 
       const rect = (p) => h("rect", p);
       return h(Fragment, null,
         h("style", null, cssBase + cssBreak + cssUrgent + cssCelebrate),
@@ -166,7 +171,7 @@
         )
       );
     };
-
+ 
     /* ===================== 音频 Hook ===================== */
     const playTone = (ctx, t, dest, freq, gainStart, gainEnd, rampDur, stopDur) => {
       const o = ctx.createOscillator(); o.type="sine"; o.frequency.value=freq;
@@ -175,10 +180,10 @@
       g.gain.exponentialRampToValueAtTime(gainEnd, t+rampDur);
       o.connect(g); g.connect(dest); o.start(t); o.stop(t+stopDur);
     };
-
+ 
     function useAudio() {
       const audio = useRef({ ctx:null, sources:[], masterGain:null, dropTimer:null, buffers:{}, noiseId:0 });
-
+ 
       const getCtx = useCallback(() => {
         const a = audio.current;
         if(!a.ctx) a.ctx = new (window.AudioContext||window.webkitAudioContext)();
@@ -190,7 +195,7 @@
         if(ctx.state==="suspended") await ctx.resume();
         return ctx;
       }, [getCtx]);
-
+ 
       const makeBuffer = useCallback((type) => {
         const ctx = getCtx();
         const len = ctx.sampleRate * 2;
@@ -213,14 +218,14 @@
         return buf;
       }, [getCtx]);
       const getBuf = useCallback((t)=>{ const a=audio.current; if(!a.buffers[t]) a.buffers[t]=makeBuffer(t); return a.buffers[t]; }, [makeBuffer]);
-
+ 
       const stopNoise = useCallback(() => {
         const a = audio.current;
         a.sources.forEach(s=>{ try{s.stop();}catch(e){} });
         a.sources = []; a.masterGain = null;
         if(a.dropTimer){ clearInterval(a.dropTimer); a.dropTimer=null; }
       }, []);
-
+ 
       const startNoise = useCallback(async ({ type, muted, volume, mode }) => {
         if(mode==="break") return;
         const a = audio.current;
@@ -264,7 +269,7 @@
           }, 130);
         }
       }, [ensureCtx, stopNoise, getBuf]);
-
+ 
       const playClick = useCallback((muted) => {
         if(muted) return;
         try {
@@ -281,7 +286,7 @@
           playTone(ctx, t, ctx.destination, 800, 0.06, 0.0001, 0.008, 0.01);
         } catch(e){}
       }, [getCtx]);
-
+ 
       const playAlert = useCallback((muted) => {
         if(muted) return;
         try {
@@ -297,9 +302,9 @@
           });
         } catch(e){}
       }, [getCtx]);
-
+ 
       const setMasterGain = useCallback((v) => { const a=audio.current; if(a.masterGain) a.masterGain.gain.value=v; }, []);
-
+ 
       // 预热缓冲 & 解锁音频上下文
       useEffect(() => {
         const tm = setTimeout(()=>{ try{ getBuf("pink"); getBuf("brown"); getBuf("white"); }catch(e){} }, 200);
@@ -310,10 +315,10 @@
         document.addEventListener('pointerdown', warm, { once:true });
         return ()=>document.removeEventListener('pointerdown', warm);
       }, [ensureCtx]);
-
+ 
       return { startNoise, stopNoise, playClick, playAlert, setMasterGain };
     }
-
+ 
     /* ===================== 计时 Hook（reducer + 时间戳，抗后台节流） ===================== */
     function timerReducer(s, a) {
       switch(a.type){
@@ -329,7 +334,7 @@
     function useTimer(initialSeconds, onComplete) {
       const [state, dispatch] = useReducer(timerReducer, { running:false, locked:false, timeLeft:initialSeconds, total:initialSeconds, endAt:0 });
       const completeRef = useRef(onComplete); completeRef.current = onComplete;
-
+ 
       // 运行时每 250ms 推进一次；回到前台时立即补一拍（修正被节流的标签页）
       useEffect(() => {
         if(!state.running) return;
@@ -339,7 +344,7 @@
         document.addEventListener('visibilitychange', onVis);
         return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
       }, [state.running]);
-
+ 
       // 归零时触发一次完成回调
       useEffect(() => {
         if(state.running && state.timeLeft===0){
@@ -347,21 +352,11 @@
           if(completeRef.current) completeRef.current();
         }
       }, [state.timeLeft, state.running]);
-
+ 
       return { ...state, dispatch };
     }
-
+ 
     /* ===================== 子组件 ===================== */
-    const TaskInput = ({ task, locked, onChange }) =>
-      h("div",{style:{width:"100%",position:"relative"}},
-        h("input",{ type:"text", value:task, disabled:locked, maxLength:20, onChange:e=>onChange(e.target.value),
-          placeholder:"请输入当前任务…",
-          style:{ width:"100%",borderRadius:12,padding:"12px 16px",textAlign:"center",outline:"none",...glass,
-            color:TEXT_MAIN,fontSize:18,opacity:locked?0.6:1,cursor:locked?"not-allowed":"text",fontFamily:FONT } }),
-        locked && h("span",{style:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)"}},
-          h(Icon,{name:"Lock",size:12,color:ORANGE}))
-      );
-
     const TimerRing = ({ timeLeft, total, running, flashId, showPlusOne, onPlusOneEnd }) => {
       const frac = total>0 ? Math.max(0, Math.min(1, timeLeft/total)) : 0;
       return h("div",{style:{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",width:244,height:244,userSelect:"none"}},
@@ -385,44 +380,11 @@
             style:{display:"inline-block",animation:"plusOne 1.5s ease-out forwards",color:"#fff",fontWeight:800,fontSize:18,whiteSpace:"nowrap"} }, "🍠 +1"))
       );
     };
-
-    const ModeToggle = ({ mode, locked, onSwitch }) =>
-      h("div",{style:{display:"flex",gap:12,width:"100%",opacity:locked?0.55:1,transition:"opacity .2s"}},
-        [["work","工作"],["break","休息"]].map(([m,label]) =>
-          h("button",{ key:m, onClick:()=>onSwitch(m), disabled:locked,
-            style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:mode===m?ORANGE:BTN,
-              color:mode===m?"#fff":TEXT_DIM,fontSize:15,cursor:locked?"not-allowed":"pointer",transition:"background .2s, color .2s"} }, label))
-      );
-
-    const Controls = ({ running, muted, onTogglePlay, onReset, onToggleMute }) => {
-      const items = [
-        { onClick:onTogglePlay, label:running?"暂停":"开始", icon: running?h(Icon,{name:"Pause",size:20}):h(Icon,{name:"Play",size:20,style:{marginLeft:2}}) },
-        { onClick:onReset, label:"重置", icon:h(Icon,{name:"RotateCcw",size:19}) },
-        { onClick:onToggleMute, label:muted?"取消静音":"静音", icon:muted?h(Icon,{name:"VolumeX",size:19}):h(Icon,{name:"Volume2",size:19}) },
-      ];
-      return h("div",{style:{display:"flex",gap:20}},
-        items.map(({onClick,label,icon},i)=>
-          h("button",{ key:i, onClick, "aria-label":label, className:"btn-press",
-            style:{width:52,height:52,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:BTN,color:TEXT_MAIN} }, icon))
-      );
-    };
-
-    const StatsRow = ({ count, totalMin }) =>
-      h("div",{style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px"}},
-        h("div",{style:{display:"flex",alignItems:"center",gap:8}},
-          h("span",{style:{fontSize:22}},"🍠"),
-          h("div",null,
-            h("div",{style:{color:TEXT_DIM,fontSize:11}},"本次完成的番薯钟数"),
-            h("div",{style:{color:TEXT_MAIN,fontWeight:800,fontSize:22,lineHeight:1.1,fontFamily:FONT}}, count))),
-        h("div",{style:{textAlign:"right"}},
-          h("div",{style:{color:TEXT_DIM,fontSize:11}},"总时长"),
-          h("div",{style:{color:TEXT_MAIN,fontWeight:800,fontSize:22,lineHeight:1.1,whiteSpace:"nowrap",fontFamily:FONT}}, fmtTotalCN(totalMin)))
-      );
-
+ 
     const NoiseSelector = ({ mode, noiseType, volume, onChangeNoise, onVolume, onToggleSliderMute }) =>
-      h("div",{style:{width:"100%",borderRadius:16,padding:16,...glass}},
+      h("div",{style:card},
         h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}},
-          h("span",{style:{color:TEXT_MAIN,fontSize:16,fontWeight:700,whiteSpace:"nowrap"}},"背景音"),
+          h("span",{style:cardTitle},"背景音"),
           mode==="break"
             ? h("div",{style:{flex:1,maxWidth:220,height:38,display:"flex",alignItems:"center",justifyContent:"center",gap:7}},
                 h("span",{style:{display:"inline-block",width:6,height:6,borderRadius:"50%",backgroundColor:"#5A5850",flexShrink:0,animation:"breathe-dot 3s ease-in-out infinite"}}),
@@ -443,16 +405,16 @@
               volume>0.66 && h("path",{d:"M20.6 3.4a13 13 0 0 1 0 17.2"}))),
           h("input",{type:"range",min:"0",max:"1",step:"0.01",value:volume,onChange:e=>onVolume(parseFloat(e.target.value)),style:{width:"100%",accentColor:"#fff",height:4}}))
       );
-
+ 
     const DurationSettings = ({ workStr, breakStr, workMin, breakMin, onWorkChange, onBreakChange, onWorkBlur, onBreakBlur, onPreset }) => {
       const field = (label, val, onChange, onBlur) =>
         h("div",{style:{flex:1}},
           h("div",{style:{color:TEXT_DIM,fontSize:13,marginBottom:6}}, label),
           h("input",{type:"number",min:"1",max:"180",value:val,onChange:e=>onChange(e.target.value),onBlur,
             style:{width:"100%",padding:"6px 4px",outline:"none",background:"transparent",color:TEXT_MAIN,fontSize:15,borderBottom:"1px solid #3A3930"}}));
-      return h("div",{style:{width:"100%",borderRadius:16,padding:16,...glass}},
+      return h("div",{style:card},
         h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}},
-          h("span",{style:{color:TEXT_MAIN,fontSize:16,fontWeight:700,whiteSpace:"nowrap"}},"专注时长"),
+          h("span",{style:cardTitle},"专注时长"),
           h("div",{style:{display:"flex",gap:6}},
             PRESETS.map(([label,w,b]) =>
               h("button",{key:label,onClick:()=>onPreset(w,b),className:"btn-press-sm preset-chip",
@@ -462,7 +424,7 @@
           field("休息时间（分钟）", breakStr, onBreakChange, onBreakBlur))
       );
     };
-
+ 
     const HistoryPanel = ({ history, show, onToggle, onClear }) =>
       h("div",{style:{width:"100%",borderRadius:16,...glass}},
         h("button",{onClick:onToggle,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",color:TEXT_MAIN,fontSize:14,background:"transparent"}},
@@ -483,19 +445,128 @@
                 h("button",{onClick:onClear,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginTop:8,padding:"8px 0",borderRadius:12,background:BTN,color:TEXT_DIM,fontSize:12}},
                   h(Icon,{name:"Trash2",size:12})," 清空历史记录")))
       );
-
-    const ResetDialog = ({ onCancel, onConfirm }) =>
-      h("div",{onClick:onCancel,style:{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",zIndex:1000}},
-        h("div",{onClick:e=>e.stopPropagation(),style:{borderRadius:16,padding:24,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:CARD,width:280,border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 8px 40px rgba(0,0,0,0.5)"}},
-          h("div",{style:{fontSize:32}},"⏱️"),
-          h("div",{style:{textAlign:"center"}},
-            h("div",{style:{color:TEXT_MAIN,fontWeight:700,fontSize:16,marginBottom:6}},"确定要重置吗？"),
-            h("div",{style:{color:TEXT_DIM,fontSize:13}},"当前进度将会清空。")),
-          h("div",{style:{display:"flex",gap:12,width:"100%"}},
-            h("button",{onClick:onCancel,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:BTN,color:TEXT_DIM,fontSize:14}},"取消"),
-            h("button",{onClick:onConfirm,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:ORANGE,color:"#fff",fontSize:14}},"确认重置")))
-      );
-
+ 
+    /* ===================== 激励语录 ===================== */
+    const START_QUOTES = [
+      "千里之行，始于足下。",
+      "实际行动，才有实际改变。",
+      "情绪会消失，但结果会留下。",
+      "简单任务，就是最好的开始。",
+      "即便焦虑，也能带着焦虑行动。",
+      "等会再做就是永远不做。",
+      "人是惯性动物，只有动起来的第一步是最难的。",
+      "先行动起来才会有状态。",
+      "当下就是最好的时刻。",
+      "专注 5 分钟就好。",
+      "让行动代替焦虑。",
+      "开始行动，胜过反复思考。",
+      "只有行动能改变情绪。",
+      "倒数 5 秒，然后开始。",
+      "碰壁，是最好的进步方式。",
+      "万事起头难。",
+      "先主动选择专注，才能进入专注。",
+      "时光一去不复返。"
+    ];
+    const FOCUS_QUOTES = [
+      "Today's pain is tomorrow's power.",
+      "再多的任务，再多的情绪，也只先做好一件事。",
+      "完成比完美更重要。",
+      "坚持才会有结果。",
+      "再坚持一分钟。",
+      "你已经进入状态了。",
+      "每一分钟都在积累优势。",
+      "深呼吸，继续。",
+      "好的成果，需要一点耐心。",
+      "一次只做好一件事。",
+      "世界可以稍后再看。",
+      "专注，是一种选择。",
+      "此刻，只需要这一件事。",
+      "如果分心了，就轻轻回来。",
+      "回到眼前这一件事。",
+      "保持专注。",
+      "每一份付出都会留下痕迹。",
+      "离完成越来越近了。",
+      "能再坚持5分钟吗？"
+    ];
+    const FINISH_QUOTES = [
+      "干得漂亮！",
+      "又向前迈进了一步。",
+      "继续保持这个节奏。",
+      "又完成了一颗番薯。"
+    ];
+    function pickRandom(arr, exclude) {
+      if (arr.length === 1) return arr[0];
+      let idx;
+      do { idx = Math.floor(Math.random() * arr.length); } while (arr[idx] === exclude);
+      return arr[idx];
+    }
+ 
+    const MotivationalQuote = ({ phase }) => {
+      const [currentQuote, setCurrentQuote] = useState("");
+      const [visible, setVisible] = useState(true);
+      const timerRef = useRef(null);   // 20s 轮播定时器
+      const fadeRef = useRef(null);    // 400ms 淡入/换词定时器（必须随 phase 变化清理）
+      const lastQuoteRef = useRef(null);
+ 
+      useEffect(() => {
+        clearInterval(timerRef.current);
+        clearTimeout(fadeRef.current);
+ 
+        if (phase === "resting") {
+          setCurrentQuote("休息中...");
+          setVisible(true);
+          return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
+        }
+ 
+        const pool = phase === "focus" ? FOCUS_QUOTES
+                   : phase === "finish" ? FINISH_QUOTES
+                   : START_QUOTES;
+ 
+        const setNewQuote = () => {
+          const next = pickRandom(pool, lastQuoteRef.current);
+          lastQuoteRef.current = next;
+          setCurrentQuote(next);
+          setVisible(true);
+        };
+ 
+        // 初始：先淡出，再换词淡入
+        setVisible(false);
+        fadeRef.current = setTimeout(setNewQuote, 400);
+ 
+        // 非 finish 时每 20s 轮播
+        if (phase !== "finish") {
+          timerRef.current = setInterval(() => {
+            setVisible(false);
+            fadeRef.current = setTimeout(setNewQuote, 400);
+          }, 20000);
+        }
+ 
+        return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
+      }, [phase]);
+ 
+      // 升级为玻璃卡片样式，与现有卡片一致，并增加字间距和文本阴影
+      const containerStyle = {
+        ...glass,
+        width: "100%",
+        borderRadius: 16,
+        padding: "16px 20px",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.4s ease",
+        textAlign: "center",
+        color: TEXT_MAIN,
+        fontSize: 20,
+        minHeight: 48,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        userSelect: "none",
+        letterSpacing: "0.05em",        // 字间距
+        textShadow: "0 1px 3px rgba(0,0,0,0.4)"  // 文本阴影
+      };
+ 
+      return h("div", { style: containerStyle }, currentQuote);
+    };
+ 
     /* ===================== 主应用 ===================== */
     function PomodoroApp() {
       const [mode, setMode] = useState("work");
@@ -512,13 +583,14 @@
       const [flashId, setFlashId] = useState(0);
       const [showPlusOne, setShowPlusOne] = useState(false);
       const [isCelebrating, setIsCelebrating] = useState(false);
-
+      const [justFinishedWork, setJustFinishedWork] = useState(false);
+ 
       const workMin = parseMin(workStr, 25);
       const breakMin = parseMin(breakStr, 5);
       const curDuration = (mode==="work" ? workMin : breakMin) * 60;
-
+ 
       const audio = useAudio();
-
+ 
       // 用于在完成回调里读取“最新值”
       const mutedRef = useRef(muted);  mutedRef.current = muted;
       const volRef = useRef(volume);   volRef.current = volume;
@@ -528,7 +600,7 @@
       endMetaRef.current = { mode, task, workMin, breakMin };
       const dispatchRef = useRef(null);
       const prevVolRef = useRef(0.3);
-
+ 
       const notify = useCallback((title, body) => {
         try {
           if("Notification" in window && Notification.permission==="granted"){
@@ -537,7 +609,7 @@
           }
         } catch(e){}
       }, []);
-
+ 
       // 完成回调：每次渲染都把最新版本喂给 useTimer 的 completeRef，所以无需 memo
       function handleComplete() {
         const { mode, task, workMin, breakMin } = endMetaRef.current;
@@ -552,6 +624,7 @@
           setCount(c=>{ const n=c+1; store.set("pomodoro-count", String(n)); return n; });
           setHistory(hs=>{ const n=[entry,...hs].slice(0,50); store.set("pomodoro-history", JSON.stringify(n)); return n; });
           setShowPlusOne(true);
+          setJustFinishedWork(true);
           notify("🍠 番薯钟", "工作时间结束，休息一下吧");
           setMode("break"); modeRef.current="break";
           dispatchRef.current && dispatchRef.current({ type:'SET_DURATION', payload: breakMin*60 });
@@ -561,22 +634,23 @@
           dispatchRef.current && dispatchRef.current({ type:'SET_DURATION', payload: workMin*60 });
         }
       }
-
+ 
       const timer = useTimer(workMin*60, handleComplete);
       dispatchRef.current = timer.dispatch;
-
+ 
       const isUrgent = mode==="work" && timer.running && timer.timeLeft>0 && timer.timeLeft<=60;
-
+ 
       // 音量 / 静音实时作用到正在播放的噪声
       useEffect(() => { audio.setMasterGain(muted ? 0 : volume); }, [volume, muted, audio]);
-
+ 
       // 载入本地持久化数据
       useEffect(() => {
         const c = store.get("pomodoro-count"); if(c!=null) setCount(parseInt(c,10)||0);
         const hh = store.get("pomodoro-history"); if(hh){ try{ setHistory(JSON.parse(hh)||[]); }catch(e){} }
       }, []);
-
+ 
       const togglePlay = useCallback(async () => {
+        if (mode === "break" && justFinishedWork) setJustFinishedWork(false);
         audio.playClick(mutedRef.current);
         if(timer.running){
           timer.dispatch({ type:'PAUSE' });
@@ -588,22 +662,23 @@
           await audio.startNoise({ type:noiseType, muted:mutedRef.current, volume:volRef.current, mode });
           timer.dispatch({ type:'START' });
         }
-      }, [audio, timer, mode, workMin, curDuration, noiseType]);
-
+      }, [audio, timer, mode, workMin, curDuration, noiseType, justFinishedWork]);
+ 
       const reset = useCallback(() => { audio.stopNoise(); timer.dispatch({ type:'RESET', payload:curDuration }); }, [audio, timer, curDuration]);
       const handleResetClick = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(true); }, [audio]);
       const confirmReset = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(false); reset(); }, [audio, reset]);
       const cancelReset = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(false); }, [audio]);
-
+ 
       const switchMode = useCallback((m) => {
         if(timer.locked) return;
+        setJustFinishedWork(false);
         audio.playClick(mutedRef.current);
         if(m===mode) return;
         audio.stopNoise();
         setMode(m); modeRef.current=m;
         timer.dispatch({ type:'RESET', payload:(m==="work"?workMin:breakMin)*60 });
       }, [audio, timer, mode, workMin, breakMin]);
-
+ 
       const toggleMute = useCallback(() => { const next=!muted; setMuted(next); mutedRef.current=next; if(!next) audio.playClick(false); }, [muted, audio]);
       const toggleSliderMute = useCallback(() => {
         audio.playClick(mutedRef.current);
@@ -616,7 +691,7 @@
         setNoiseType(t);
         if(timer.running) await audio.startNoise({ type:t, muted:mutedRef.current, volume:volRef.current, mode:modeRef.current });
       }, [audio, noiseType, timer.running]);
-
+ 
       const onWorkChange = useCallback((v) => {
         setWorkStr(v); const n=parseInt(v,10);
         if(!timer.locked && mode==="work" && Number.isFinite(n) && n>=1) timer.dispatch({ type:'SET_DURATION', payload:Math.min(180,n)*60 });
@@ -630,32 +705,71 @@
         setWorkStr(String(w)); setBreakStr(String(b));
         if(!timer.locked) timer.dispatch({ type:'SET_DURATION', payload:(mode==="work"?w:b)*60 });
       }, [audio, timer, mode]);
-
+ 
       const clearHistory = useCallback(() => {
         audio.playClick(mutedRef.current);
         setHistory([]); setCount(0);
         store.remove("pomodoro-history"); store.remove("pomodoro-count");
       }, [audio]);
-
+ 
       const totalMin = history.reduce((s,it)=>s+(it.min||0), 0);
-
+ 
+      const phase = useMemo(() => {
+        if (mode === "break" && timer.running) return "resting";
+        if (mode === "break" && justFinishedWork) return "finish";
+        if (mode === "work" && timer.running) return "focus";
+        return "start";
+      }, [mode, timer.running, justFinishedWork]);
+ 
       return h("div",{style:{minHeight:"100vh",width:"100%",display:"flex",justifyContent:"center",position:"relative",overflow:"hidden",background:"transparent",fontFamily:FONT}},
         h(Clawd,{ isBreak:mode==="break", isUrgent, isCelebrating }),
         h("div",{style:{width:"100%",maxWidth:390,display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"16px",position:"relative",zIndex:1}},
-          h(TaskInput,{ task, locked:timer.locked, onChange:setTask }),
+          // 任务输入
+          h("div",{style:{width:"100%",position:"relative"}},
+            h("input",{ type:"text", value:task, disabled:timer.locked, maxLength:20, onChange:e=>setTask(e.target.value), placeholder:"请输入当前任务…",
+              style:{ width:"100%",borderRadius:12,padding:"12px 16px",textAlign:"center",outline:"none",...glass,color:TEXT_MAIN,fontSize:18,opacity:timer.locked?0.6:1,cursor:timer.locked?"not-allowed":"text",fontFamily:FONT } }),
+            timer.locked && h("span",{style:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)"}}, h(Icon,{name:"Lock",size:12,color:ORANGE}))),
           h(TimerRing,{ timeLeft:timer.timeLeft, total:timer.total, running:timer.running, flashId, showPlusOne, onPlusOneEnd:()=>setShowPlusOne(false) }),
-          h(ModeToggle,{ mode, locked:timer.locked, onSwitch:switchMode }),
-          h(Controls,{ running:timer.running, muted, onTogglePlay:togglePlay, onReset:handleResetClick, onToggleMute:toggleMute }),
-          h(StatsRow,{ count, totalMin }),
+          h(MotivationalQuote,{ phase }),
+          // 工作/休息切换
+          h("div",{style:{display:"flex",gap:12,width:"100%",opacity:timer.locked?0.55:1,transition:"opacity .2s"}},
+            [["work","工作"],["break","休息"]].map(([m,label])=>
+              h("button",{ key:m, onClick:()=>switchMode(m), disabled:timer.locked,
+                style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:mode===m?ORANGE:BTN,color:mode===m?"#fff":TEXT_DIM,fontSize:15,cursor:timer.locked?"not-allowed":"pointer",transition:"background .2s, color .2s"} }, label))),
+          // 控制按钮
+          h("div",{style:{display:"flex",gap:20}},
+            [
+              { onClick:togglePlay, label:timer.running?"暂停":"开始", icon:timer.running?h(Icon,{name:"Pause",size:20}):h(Icon,{name:"Play",size:20,style:{marginLeft:2}}) },
+              { onClick:handleResetClick, label:"重置", icon:h(Icon,{name:"RotateCcw",size:19}) },
+              { onClick:toggleMute, label:muted?"取消静音":"静音", icon:muted?h(Icon,{name:"VolumeX",size:19}):h(Icon,{name:"Volume2",size:19}) },
+            ].map(({onClick,label,icon},i)=>
+              h("button",{ key:i, onClick, "aria-label":label, className:"btn-press",
+                style:{width:52,height:52,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:BTN,color:TEXT_MAIN} }, icon))),
+          // 统计
+          h("div",{style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px"}},
+            h("div",{style:{display:"flex",alignItems:"center",gap:8}},
+              h("span",{style:{fontSize:22}},"🍠"),
+              h("div",null, h("div",{style:dimXS},"本次完成的番薯钟数"), h("div",{style:statNum}, count))),
+            h("div",{style:{textAlign:"right"}},
+              h("div",{style:dimXS},"总时长"), h("div",{style:{...statNum,whiteSpace:"nowrap"}}, fmtTotalCN(totalMin)))),
           h(NoiseSelector,{ mode, noiseType, volume, onChangeNoise:changeNoise, onVolume:setVolume, onToggleSliderMute:toggleSliderMute }),
           h(DurationSettings,{ workStr, breakStr, workMin, breakMin,
             onWorkChange, onBreakChange, onWorkBlur:()=>setWorkStr(String(workMin)), onBreakBlur:()=>setBreakStr(String(breakMin)), onPreset:applyPreset }),
           h(HistoryPanel,{ history, show:showHistory, onToggle:()=>{ audio.playClick(mutedRef.current); setShowHistory(s=>!s); }, onClear:clearHistory })
         ),
-        showResetConfirm && h(ResetDialog,{ onCancel:cancelReset, onConfirm:confirmReset })
+        // 重置确认弹窗
+        showResetConfirm && h("div",{onClick:cancelReset,style:{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",zIndex:1000}},
+          h("div",{onClick:e=>e.stopPropagation(),style:{borderRadius:16,padding:24,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:CARD,width:280,border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 8px 40px rgba(0,0,0,0.5)"}},
+            h("div",{style:{fontSize:32}},"⏱️"),
+            h("div",{style:{textAlign:"center"}},
+              h("div",{style:{color:TEXT_MAIN,fontWeight:700,fontSize:16,marginBottom:6}},"确定要重置吗？"),
+              h("div",{style:{color:TEXT_DIM,fontSize:13}},"当前进度将会清空。")),
+            h("div",{style:{display:"flex",gap:12,width:"100%"}},
+              h("button",{onClick:cancelReset,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:BTN,color:TEXT_DIM,fontSize:14}},"取消"),
+              h("button",{onClick:confirmReset,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:ORANGE,color:"#fff",fontSize:14}},"确认重置"))))
       );
     }
-
+ 
     ReactDOM.createRoot(document.getElementById("root")).render(h(PomodoroApp));
   </script>
 </body>

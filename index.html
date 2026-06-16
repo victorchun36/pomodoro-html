@@ -508,6 +508,9 @@
   const fadeRef = useRef(null);
   const lastQuoteRef = useRef(null);
 
+  const textRef = useRef(null);                // 用于测量文字宽度
+  const [lineWidth, setLineWidth] = useState(24); // 细线宽度
+
   useEffect(() => {
     clearInterval(timerRef.current);
     clearTimeout(fadeRef.current);
@@ -542,7 +545,19 @@
     return () => { clearInterval(timerRef.current); clearTimeout(fadeRef.current); };
   }, [phase]);
 
-  // 微标签式：纯文字 + 底部极细暖橙短线
+  // 每次 currentQuote 变化后，测量文字宽度并更新细线长度
+  useEffect(() => {
+    if (textRef.current) {
+      requestAnimationFrame(() => {
+        if (textRef.current) {
+          const w = textRef.current.offsetWidth;
+          // 细线长度为文字宽度的 40%，限制最小 16px 最大 64px
+          setLineWidth(Math.min(9999, Math.max(16, Math.round(w * 0.7))));
+        }
+      });
+    }
+  }, [currentQuote]);
+
   const containerStyle = {
     opacity: visible ? 1 : 0,
     transition: "opacity 0.4s ease",
@@ -562,14 +577,15 @@
   };
 
   const lineStyle = {
-    width: 24,
+    width: lineWidth,
     height: 2,
     borderRadius: 1,
-    background: "rgba(210,97,60,0.65)"
+    background: "rgba(210,97,60,0.65)",
+    transition: "width 0.3s ease"
   };
 
   return h("div", { style: containerStyle },
-    h("span", null, currentQuote),
+    h("span", { ref: textRef }, currentQuote),
     h("span", { style: lineStyle })
   );
 };

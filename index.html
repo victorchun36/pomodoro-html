@@ -27,7 +27,7 @@
 <body>
   <div id="root"></div>
   <script>
-    const { useState, useEffect, useRef, useCallback } = React;
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
     const ORANGE = "#D2613C";
     const BG = "#1C1B17";
@@ -86,51 +86,103 @@
       ) : null;
     const mkIcon = (name) => (props) => React.createElement(LucideIcon, { data: ICONS[name], ...props });
 
-    const Clawd = () => (
-      React.createElement(React.Fragment, null,
+    const Clawd = () => {
+      const seed = useMemo(() => Math.random(), []);
+      return React.createElement(React.Fragment, null,
         React.createElement("style", null, `
-          @keyframes clawd-walk { 0% { transform: translateX(-90px); } 100% { transform: translateX(calc(100vw + 90px)); } }
-          @keyframes clawd-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-          @keyframes snipL { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-12deg); } }
-          @keyframes snipR { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(12deg); } }
-          .clawd-walk { animation: clawd-walk 40s linear infinite; }
-          .clawd-bob { animation: clawd-bob 0.5s ease-in-out infinite; }
-          .claw { transform-box: fill-box; }
-          .claw-l { transform-origin: 90% 85%; animation: snipL 1.3s ease-in-out infinite; }
-          .claw-r { transform-origin: 10% 85%; animation: snipR 1.3s ease-in-out infinite; }
+          @keyframes clawd-walk {
+            0% { transform: translateX(-90px); }
+            100% { transform: translateX(calc(100vw + 90px)); }
+          }
+          @keyframes clawd-bob {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+          }
+          @keyframes snipL {
+            0%   { transform: rotate(0deg); }
+            20%  { transform: rotate(-18deg); }   /* 快夹 */
+            50%  { transform: rotate(-18deg); }
+            100% { transform: rotate(0deg); }     /* 慢放 */
+          }
+          @keyframes snipR {
+            0%   { transform: rotate(0deg); }
+            20%  { transform: rotate(18deg); }
+            50%  { transform: rotate(18deg); }
+            100% { transform: rotate(0deg); }
+          }
+          @keyframes crab-spin {
+            0%, 100% { transform: rotate(0deg); }
+            10%      { transform: rotate(10deg); }
+            20%      { transform: rotate(10deg); }
+            30%      { transform: rotate(0deg); }
+          }
+          .clawd-walk {
+            animation: clawd-walk 40s linear infinite;
+            will-change: transform;
+          }
+          .clawd-bob {
+            animation: clawd-bob 0.5s ease-in-out infinite;
+            will-change: transform;
+          }
+          .clawd-spin {
+            animation: crab-spin 8s ease-in-out infinite;
+            animation-delay: calc(-8s * var(--seed, 0));
+            will-change: transform;
+          }
+          .claw {
+            transform-box: fill-box;
+          }
+          .claw-l {
+            transform-origin: 90% 85%;
+            animation: snipL 1.3s ease-in-out infinite;
+          }
+          .claw-r {
+            transform-origin: 10% 85%;
+            animation: snipR 1.3s ease-in-out infinite;
+            animation-delay: 0.4s;   /* 错开相位 */
+          }
         `),
-        React.createElement("div", { className: "clawd-walk", style: { position:"fixed", bottom:6, left:0, zIndex:9999, pointerEvents:"none", opacity:0.9 } },
+        React.createElement("div", {
+          className: "clawd-walk",
+          style: { position:"fixed", bottom:6, left:0, zIndex:9999, pointerEvents:"none", opacity:0.9 }
+        },
           React.createElement("div", { className: "clawd-bob" },
-            React.createElement("svg", { width:"78", height:"65", viewBox:"0 0 24 20", shapeRendering:"crispEdges" },
-              React.createElement("g", { className: "claw claw-l" },
-                React.createElement("rect", { x:"0", y:"3", width:"4", height:"2", fill:"#E2795B" }),
-                React.createElement("rect", { x:"0", y:"6", width:"4", height:"1", fill:"#E2795B" }),
-                React.createElement("rect", { x:"2", y:"5", width:"3", height:"3", fill:"#D2613C" })
-              ),
-              React.createElement("g", { className: "claw claw-r" },
-                React.createElement("rect", { x:"20", y:"3", width:"4", height:"2", fill:"#E2795B" }),
-                React.createElement("rect", { x:"20", y:"6", width:"4", height:"1", fill:"#E2795B" }),
-                React.createElement("rect", { x:"19", y:"5", width:"3", height:"3", fill:"#D2613C" })
-              ),
-              React.createElement("rect", { x:"5", y:"7", width:"1", height:"2", fill:"#C05B3F" }),
-              React.createElement("rect", { x:"18", y:"7", width:"1", height:"2", fill:"#C05B3F" }),
-              React.createElement("rect", { x:"7", y:"8", width:"10", height:"1", fill:"#E2795B" }),
-              React.createElement("rect", { x:"6", y:"9", width:"12", height:"6", fill:"#E2795B" }),
-              React.createElement("rect", { x:"7", y:"15", width:"10", height:"1", fill:"#D2613C" }),
-              React.createElement("rect", { x:"9", y:"10", width:"2", height:"2", fill:"#FFFFFF" }),
-              React.createElement("rect", { x:"13", y:"10", width:"2", height:"2", fill:"#FFFFFF" }),
-              React.createElement("rect", { x:"10", y:"11", width:"1", height:"1", fill:"#1C1B17" }),
-              React.createElement("rect", { x:"14", y:"11", width:"1", height:"1", fill:"#1C1B17" }),
-              React.createElement("rect", { x:"11", y:"13", width:"2", height:"1", fill:"#C05B3F" }),
-              React.createElement("rect", { x:"7", y:"16", width:"1", height:"2", fill:"#C05B3F" }),
-              React.createElement("rect", { x:"10", y:"16", width:"1", height:"2", fill:"#C05B3F" }),
-              React.createElement("rect", { x:"13", y:"16", width:"1", height:"2", fill:"#C05B3F" }),
-              React.createElement("rect", { x:"16", y:"16", width:"1", height:"2", fill:"#C05B3F" })
+            React.createElement("div", {
+              className: "clawd-spin",
+              style: { '--seed': seed }
+            },
+              React.createElement("svg", { width:"78", height:"65", viewBox:"0 0 24 20", shapeRendering:"crispEdges" },
+                React.createElement("g", { className: "claw claw-l" },
+                  React.createElement("rect", { x:"0", y:"3", width:"4", height:"2", fill:"#E2795B" }),
+                  React.createElement("rect", { x:"0", y:"6", width:"4", height:"1", fill:"#E2795B" }),
+                  React.createElement("rect", { x:"2", y:"5", width:"3", height:"3", fill:"#D2613C" })
+                ),
+                React.createElement("g", { className: "claw claw-r" },
+                  React.createElement("rect", { x:"20", y:"3", width:"4", height:"2", fill:"#E2795B" }),
+                  React.createElement("rect", { x:"20", y:"6", width:"4", height:"1", fill:"#E2795B" }),
+                  React.createElement("rect", { x:"19", y:"5", width:"3", height:"3", fill:"#D2613C" })
+                ),
+                // 身体部分保持不变
+                React.createElement("rect", { x:"5", y:"7", width:"1", height:"2", fill:"#C05B3F" }),
+                React.createElement("rect", { x:"18", y:"7", width:"1", height:"2", fill:"#C05B3F" }),
+                React.createElement("rect", { x:"7", y:"8", width:"10", height:"1", fill:"#E2795B" }),
+                React.createElement("rect", { x:"6", y:"9", width:"12", height:"6", fill:"#E2795B" }),
+                React.createElement("rect", { x:"7", y:"15", width:"10", height:"1", fill:"#D2613C" }),
+                React.createElement("rect", { x:"9", y:"10", width:"2", height:"2", fill:"#FFFFFF" }),
+                React.createElement("rect", { x:"13", y:"10", width:"2", height:"2", fill:"#FFFFFF" }),
+                React.createElement("rect", { x:"10", y:"11", width:"1", height:"1", fill:"#1C1B17" }),
+                React.createElement("rect", { x:"14", y:"11", width:"1", height:"1", fill:"#1C1B17" }),
+                React.createElement("rect", { x:"11", y:"13", width:"2", height:"1", fill:"#C05B3F" }),
+                React.createElement("rect", { x:"7", y:"16", width:"1", height:"2", fill:"#C05B3F" }),
+                React.createElement("rect", { x:"10", y:"16", width:"1", height:"2", fill:"#C05B3F" }),
+                React.createElement("rect", { x:"13", y:"16", width:"1", height:"2", fill:"#C05B3F" }),
+                React.createElement("rect", { x:"16", y:"16", width:"1", height:"2", fill:"#C05B3F" })
+              )
             )
           )
         )
-      )
-    );
+      );
+    };
 
     function PomodoroApp() {
       const [mode, setMode] = useState("work");

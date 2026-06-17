@@ -441,26 +441,55 @@
       );
     };
  
-    const HistoryPanel = ({ history, show, onToggle, onClear }) =>
-      h("div",{style:{width:"100%",borderRadius:16,...glass}},
-        h("button",{onClick:onToggle,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",color:TEXT_MAIN,fontSize:14,background:"transparent"}},
-          h("span",{style:{fontWeight:700,fontSize:16}},"历史记录"),
-          h(Icon,{name:show?"ChevronUp":"ChevronDown",size:17,color:TEXT_DIM})),
-        show && h("div",{style:{padding:"0 16px 12px"}},
-          history.length===0
-            ? h("div",{style:{textAlign:"center",padding:"12px 0",color:TEXT_DIM,fontSize:13}},"还没有完成的番薯钟，开始第一个吧 🍠")
-            : h(Fragment,null,
-                h("div",{style:{maxHeight:180,overflowY:"auto"}},
-                  history.map((it,i)=>
-                    h("div",{key:i,style:{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderTop:i===0?"none":`1px solid ${BTN}`}},
-                      h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minWidth:44}},
-                        h("span",{style:{color:TEXT_MAIN,fontSize:20,fontWeight:800,lineHeight:1}}, fmtDuration(it.min))),
-                      h("div",{style:{flex:1,minWidth:0}},
-                        h("div",{style:{color:TEXT_MAIN,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, it.task),
-                        h("div",{style:{color:TEXT_DIM,fontSize:11,marginTop:1}}, fmtShortDate(it.date, it.time)))))),
-                h("button",{onClick:onClear,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginTop:8,padding:"8px 0",borderRadius:12,background:BTN,color:TEXT_DIM,fontSize:12}},
-                  h(Icon,{name:"Trash2",size:12})," 清空历史记录")))
-      );
+    const HistoryPanel = ({ history, show, onToggle, onClear }) => {
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const handleClearClick = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+    // 二次确认后执行清空
+    onClear();
+    setConfirmClear(false);
+  };
+
+  const cancelClear = () => setConfirmClear(false);
+
+  return h("div",{style:{width:"100%",borderRadius:16,...glass}},
+    h("button",{onClick:onToggle,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",color:TEXT_MAIN,fontSize:14,background:"transparent"}},
+      h("span",{style:{fontWeight:700,fontSize:16}},"历史记录"),
+      h(Icon,{name:show?"ChevronUp":"ChevronDown",size:17,color:TEXT_DIM})),
+    show && h("div",{style:{padding:"0 16px 12px"}},
+      history.length===0
+        ? h("div",{style:{textAlign:"center",padding:"12px 0",color:TEXT_DIM,fontSize:13}},"还没有完成的番薯钟，开始第一个吧 🍠")
+        : h(Fragment,null,
+            h("div",{style:{maxHeight:180,overflowY:"auto"}},
+              history.map((it,i)=>
+                h("div",{key:i,style:{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderTop:i===0?"none":`1px solid ${BTN}`}},
+                  h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minWidth:44}},
+                    h("span",{style:{color:TEXT_MAIN,fontSize:20,fontWeight:800,lineHeight:1}}, fmtDuration(it.min))),
+                  h("div",{style:{flex:1,minWidth:0}},
+                    h("div",{style:{color:TEXT_MAIN,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, it.task),
+                    h("div",{style:{color:TEXT_DIM,fontSize:11,marginTop:1}}, fmtShortDate(it.date, it.time)))))),
+            h("div",{style:{display:"flex",gap:8,marginTop:8,alignItems:"center"}},
+              confirmClear
+                ? h(Fragment,null,
+                    h("button",{onClick:handleClearClick,
+                      style:{flex:1,padding:"8px 0",borderRadius:12,background:ORANGE,color:"#fff",fontSize:13,fontWeight:500,border:"none",cursor:"pointer"}
+                    }, "确认清空"),
+                    h("button",{onClick:cancelClear,
+                      style:{flex:1,padding:"8px 0",borderRadius:12,background:BTN,color:TEXT_DIM,fontSize:13,border:"none",cursor:"pointer"}
+                    }, "取消"))
+                : h("button",{onClick:handleClearClick,
+                    style:{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"8px 0",borderRadius:12,background:BTN,color:TEXT_DIM,fontSize:12,border:"none",cursor:"pointer"}
+                  },
+                    h(Icon,{name:"Trash2",size:12})," 清空历史记录"
+                  )
+            )
+          ))
+  );
+};
  
    /* ===================== 激励语录 ===================== */
 const START_QUOTES = [

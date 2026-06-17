@@ -20,7 +20,7 @@
     .preset-chip{transition:color .15s,border-color .15s}.preset-chip:hover{color:#D2613C!important;border-color:#D2613C!important}
     @keyframes breathe-dot{0%,100%{transform:scale(.65);opacity:.3}50%{transform:scale(1.35);opacity:.9}}
     @keyframes taskHintFloat {0%   { opacity: 0; transform: translateX(-50%) translateY(90px); }15%  { opacity: 1; transform: translateX(-50%) translateY(63px); }85%  { opacity: 1; transform: translateX(-50%) translateY(-63px); }100% { opacity: 0; transform: translateX(-50%) translateY(-90px); }}
-    .task-hint{position:absolute;left:50%;top:50%;color:#E8E6DF;font-size:25px;white-space:nowrap;pointer-events:none;z-index:10;animation:taskHintFloat 1.75s linear forwards}
+    .task-hint{position:absolute;left:50%;top:50%;color:#E8E6DF;font-size:22px;white-space:nowrap;pointer-events:none;z-index:10;animation:taskHintFloat 2s linear forwards}
   </style>
 </head>
 <body>
@@ -715,7 +715,7 @@ const MotivationalQuote = ({ phase }) => {
           timer.dispatch({ type:'PAUSE' });
           audio.stopNoise();
         } else {
-          if(!task.trim() && !hintActiveRef.current) {
+          if(!task.trim() && !hintActiveRef.current && !timer.locked) {
             setShowTaskHint(true);
             hintActiveRef.current = true;
             setTimeout(() => { setShowTaskHint(false); hintActiveRef.current = false; }, 3000);

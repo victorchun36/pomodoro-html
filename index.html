@@ -19,6 +19,8 @@
     .btn-press-sm{transition:transform .1s}.btn-press-sm:active{transform:scale(.95)}
     .preset-chip{transition:color .15s,border-color .15s}.preset-chip:hover{color:#D2613C!important;border-color:#D2613C!important}
     @keyframes breathe-dot{0%,100%{transform:scale(.65);opacity:.3}50%{transform:scale(1.35);opacity:.9}}
+    @keyframes taskHintFloat {0%   { opacity: 0; transform: translateX(-50%) translateY(90px); }15%  { opacity: 1; transform: translateX(-50%) translateY(63px); }85%  { opacity: 1; transform: translateX(-50%) translateY(-63px); }100% { opacity: 0; transform: translateX(-50%) translateY(-90px); }}
+    .task-hint{position:absolute;left:50%;top:50%;color:#E8E6DF;font-size:25px;white-space:nowrap;pointer-events:none;z-index:10;animation:taskHintFloat 1.75s linear forwards}
   </style>
 </head>
 <body>
@@ -370,7 +372,7 @@
     }
  
     /* ===================== 子组件 ===================== */
-    const TimerRing = ({ timeLeft, total, running, flashId, showPlusOne, onPlusOneEnd }) => {
+    const TimerRing = ({ timeLeft, total, running, flashId, showPlusOne, onPlusOneEnd, showTaskHint }) => {
       const frac = total>0 ? Math.max(0, Math.min(1, timeLeft/total)) : 0;
       return h("div",{style:{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",width:244,height:244,userSelect:"none"}},
         h("style",null,`
@@ -390,7 +392,8 @@
             h("div",{style:{color:"#fff",fontWeight:500,fontSize:60,lineHeight:1,letterSpacing:1,fontVariantNumeric:"tabular-nums",fontFamily:FONT}}, fmtMMSS(timeLeft)))),
         h("div",{style:{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%, -50%)",pointerEvents:"none"}},
           showPlusOne && h("span",{ onAnimationEnd:onPlusOneEnd,
-            style:{display:"inline-block",animation:"plusOne 1.5s ease-out forwards",color:"#fff",fontWeight:800,fontSize:18,whiteSpace:"nowrap"} }, "🍠 +1"))
+            style:{display:"inline-block",animation:"plusOne 1.5s ease-out forwards",color:"#fff",fontWeight:800,fontSize:18,whiteSpace:"nowrap"} }, "🍠 +1")),
+        showTaskHint && h("div",{key:"task-hint",className:"task-hint"},"你还没有输入当前任务哦~")
       );
     };
  
@@ -638,7 +641,9 @@ const MotivationalQuote = ({ phase }) => {
       const [showPlusOne, setShowPlusOne] = useState(false);
       const [isCelebrating, setIsCelebrating] = useState(false);
       const [justFinishedWork, setJustFinishedWork] = useState(false);
- 
+      const [showTaskHint, setShowTaskHint] = useState(false);
+      const hintActiveRef = useRef(false);
+
       const workMin = parseMin(workStr, 25);
       const breakMin = parseMin(breakStr, 5);
       const curDuration = (mode==="work" ? workMin : breakMin) * 60;
@@ -710,13 +715,21 @@ const MotivationalQuote = ({ phase }) => {
           timer.dispatch({ type:'PAUSE' });
           audio.stopNoise();
         } else {
+          if(!task.trim() && !hintActiveRef.current) {
+            setShowTaskHint(true);
+            hintActiveRef.current = true;
+            setTimeout(() => { setShowTaskHint(false); hintActiveRef.current = false; }, 3000);
+            return;
+          }
+          setShowTaskHint(false);
+          hintActiveRef.current = false;
           if(!timer.locked && mode==="work") activeWorkMinRef.current = workMin;
           if("Notification" in window && Notification.permission==="default"){ try{ Notification.requestPermission(); }catch(e){} }
           if(timer.timeLeft===0) timer.dispatch({ type:'SET_DURATION', payload:curDuration });
           await audio.startNoise({ type:noiseType, muted:mutedRef.current, volume:volRef.current, mode });
           timer.dispatch({ type:'START' });
         }
-      }, [audio, timer, mode, workMin, curDuration, noiseType, justFinishedWork]);
+      }, [audio, timer, mode, task, workMin, curDuration, noiseType, justFinishedWork]);
  
       const reset = useCallback(() => { audio.stopNoise(); timer.dispatch({ type:'RESET', payload:curDuration }); }, [audio, timer, curDuration]);
       const handleResetClick = useCallback(() => { audio.playClick(mutedRef.current); setShowResetConfirm(true); }, [audio]);
@@ -783,7 +796,7 @@ const MotivationalQuote = ({ phase }) => {
             h("input",{ type:"text", value:task, disabled:timer.locked, maxLength:20, onChange:e=>setTask(e.target.value), placeholder:"请输入当前任务…",
               style:{ width:"100%",borderRadius:12,padding:"12px 16px",textAlign:"center",outline:"none",...glass,color:TEXT_MAIN,fontSize:18,opacity:timer.locked?0.6:1,cursor:timer.locked?"not-allowed":"text",fontFamily:FONT } }),
             timer.locked && h("span",{style:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)"}}, h(Icon,{name:"Lock",size:12,color:ORANGE}))),
-          h(TimerRing,{ timeLeft:timer.timeLeft, total:timer.total, running:timer.running, flashId, showPlusOne, onPlusOneEnd:()=>setShowPlusOne(false) }),
+          h(TimerRing,{ timeLeft:timer.timeLeft, total:timer.total, running:timer.running, flashId, showPlusOne, onPlusOneEnd:()=>setShowPlusOne(false), showTaskHint }),
           h(MotivationalQuote,{ phase }),
           // 工作/休息切换
           h("div",{style:{display:"flex",gap:12,width:"100%",opacity:timer.locked?0.55:1,transition:"opacity .2s"}},

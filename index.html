@@ -476,8 +476,8 @@
               h("button",{key:label,onClick:()=>onPreset(w,b),className:"btn-press-sm preset-chip",
                 style:{padding:"3px 10px",borderRadius:20,background:"transparent",color:TEXT_DIM,fontSize:11,cursor:"pointer",border:"1px solid #3A3930",letterSpacing:0.3,lineHeight:"18px"}}, label)))),
         h("div",{style:{display:"flex",gap:12}},
-          field("工作时间（分钟）", workStr, onWorkChange, onWorkBlur),
-          field("休息时间（分钟）", breakStr, onBreakChange, onBreakBlur))
+          field("工作时长（分钟）", workStr, onWorkChange, onWorkBlur),
+          field("休息时长（分钟）", breakStr, onBreakChange, onBreakBlur))
       );
     };
  

@@ -326,9 +326,13 @@
         return ()=>clearTimeout(tm);
       }, [getBuf]);
       useEffect(() => {
-        const warm = ()=>{ ensureCtx().catch(()=>{}); };
-        document.addEventListener('pointerdown', warm, { once:true });
-        return ()=>document.removeEventListener('pointerdown', warm);
+        const UNLOCK_EVENTS = ['pointerdown', 'keydown'];
+        const warm = ()=>{
+          ensureCtx().catch(()=>{});
+          UNLOCK_EVENTS.forEach(e => document.removeEventListener(e, warm));
+        };
+        UNLOCK_EVENTS.forEach(e => document.addEventListener(e, warm, { once:true }));
+        return ()=> UNLOCK_EVENTS.forEach(e => document.removeEventListener(e, warm));
       }, [ensureCtx]);
  
       return { startNoise, stopNoise, playClick, playAlert, setMasterGain };

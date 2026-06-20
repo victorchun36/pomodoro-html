@@ -372,7 +372,7 @@
    /* ===================== 画中画专属极简组件 ===================== */
     const SimplifiedPipView = ({ timeLeft, mode, running, onTogglePlay }) => {
       const timeStr = useMemo(() => fmtMMSS(timeLeft), [timeLeft]);
-      const statusStr = mode === 'break' ? '休息中' : '专注中';
+      const statusStr = mode === 'break' ? '休息模式☕' : '工作模式👩🏻‍💻';
 
       return h("div", {
         style: {
@@ -396,14 +396,15 @@
           .pip-lcd-ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(0,0,0,0.05);pointer-events:none}
           .pip-lcd-real{position:relative;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.18)}
         `),
-        h("div", { style: { fontSize: 13, fontWeight: 600, letterSpacing: 2, color: 'rgba(255,255,255,0.92)' } }, statusStr),
+        h("div", { style: { fontSize: 15, fontWeight: 600, letterSpacing: 3, color: 'rgba(255,255,255,0.92)' } }, statusStr),
         h("div", { className: "pip-lcd-wrap" },
           h("span", { className: "pip-lcd-ghost", "aria-hidden": "true" }, "88:88"),
           h("span", { className: "pip-lcd-real" }, timeStr)
         ),
         h("button", {
           onClick: onTogglePlay, className: "pip-bare-btn", "aria-label": running ? "暂停" : "继续"
-        }, running ? h(Icon, { name: 'Pause', size: 30 }) : h(Icon, { name: 'Play', size: 30, style: { marginLeft: 3 } }))
+        }, running ? h(Icon, { name: 'Pause', size: 33, strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  : h(Icon, { name: 'Play',  size: 33, strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round', style: { marginLeft: 3 } }))
       );
     };
  
@@ -700,7 +701,7 @@
       const togglePip = useCallback(async () => {
   audio.playClick();
   if (pipWindow) return pipWindow.close();
-  const win = await window.documentPictureInPicture.requestWindow({ width: 200, height: 150 });
+  const win = await window.documentPictureInPicture.requestWindow({ width: 180, height: 150 });
   win.document.body.style.cssText = "margin:0;overflow:hidden;background:#1C1B17";
   win.document.title = "番薯钟 🍠";
   win.addEventListener('pagehide', () => setPipWindow(null));

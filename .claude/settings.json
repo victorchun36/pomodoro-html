@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"cardTitle\\\\|设置\\\\|统计\\\\|任务\\\\|白噪\\\\|音效\\\\|主题\\\\|function \\\\|const.*=.*=>.*{$\\\\|Section\\\\|Panel\" index.html)"
+    ]
+  }
+}

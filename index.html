@@ -63,7 +63,6 @@
     /* ===================== 图标 ===================== */
     const ICONS = {
       Play:[["polygon",{points:"6 3 20 12 6 21 6 3"}]],
-      RotateCcw:[["path",{d:"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"}],["path",{d:"M3 3v5h5"}]],
       Volume2:[["polygon",{points:"11 5 6 9 2 9 2 15 6 15 11 19 11 5"}],["path",{d:"M15.54 8.46a5 5 0 0 1 0 7.07"}],["path",{d:"M19.07 4.93a10 10 0 0 1 0 14.14"}]],
       VolumeX:[["polygon",{points:"11 5 6 9 2 9 2 15 6 15 11 19 11 5"}],["line",{x1:"22",x2:"16",y1:"9",y2:"15"}],["line",{x1:"16",x2:"22",y1:"9",y2:"15"}]],
       Lock:[["rect",{width:"18",height:"11",x:"3",y:"11",rx:"2",ry:"2"}],["path",{d:"M7 11V7a5 5 0 0 1 10 0v4"}]],
@@ -345,7 +344,7 @@
         case 'TICK':         return { ...s, timeLeft: Math.max(0, Math.ceil((s.endAt - Date.now())/1000)) };
         case 'SET_DURATION': return { ...s, timeLeft:a.payload, total:a.payload };
         case 'START':        return { ...s, running:true, endAt: Date.now() + s.timeLeft*1000 };
-        // 放弃与重置的状态迁移相同，区别只在调用方是否写入历史记录
+        // ABANDON=用户主动放弃（调用方另写历史）；RESET=切换工作/休息时重装时长
         case 'ABANDON':
         case 'RESET':        return { ...s, running:false, timeLeft:a.payload, total:a.payload };
         case 'FINISH':       return { ...s, running:false, timeLeft:0 };
@@ -602,7 +601,7 @@
       const [distractions, setDistractions] = useState([]);
       const [history, setHistory] = useState([]);
       const [showHistory, setShowHistory] = useState(false);
-      const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
       const [flashId, setFlashId] = useState(0);
       const [showPlusOne, setShowPlusOne] = useState(false);
       const [isCelebrating, setIsCelebrating] = useState(false);
@@ -674,7 +673,6 @@
         timer.dispatch({ type:'START' });
       }, [audio, timer, mode, task, workMin, curDuration, noiseType, justFinishedWork]);
  
-      const reset = useCallback(() => { audio.stopNoise(); timer.dispatch({ type:'RESET', payload:curDuration }); }, [audio, timer, curDuration]);
       // 放弃：复位计时，并把已专注的时间留一条「已放弃」记录（不计入番薯钟数与总时长）
       const abandon = useCallback(() => {
         audio.stopNoise();
@@ -687,9 +685,9 @@
         }
         timer.dispatch({ type:'ABANDON', payload:curDuration });
       }, [audio, timer, curDuration]);
-      const handleResetClick = useCallback(() => { audio.playClick(); setShowResetConfirm(true); }, [audio]);
-      const confirmReset = useCallback(() => { audio.playClick(); setShowResetConfirm(false); timer.running ? abandon() : reset(); }, [audio, timer.running, abandon, reset]);
-      const cancelReset = useCallback(() => { audio.playClick(); setShowResetConfirm(false); }, [audio]);
+      const handleAbandonClick = useCallback(() => { audio.playClick(); setShowAbandonConfirm(true); }, [audio]);
+      const confirmAbandon = useCallback(() => { audio.playClick(); setShowAbandonConfirm(false); abandon(); }, [audio, abandon]);
+      const cancelAbandon = useCallback(() => { audio.playClick(); setShowAbandonConfirm(false); }, [audio]);
  
       const switchMode = useCallback((m) => {
         if(timer.running) return;
@@ -788,12 +786,11 @@
                 style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:mode===m?ORANGE:BTN,color:mode===m?"#fff":TEXT_DIM,fontSize:15,cursor:timer.running?"not-allowed":"pointer",transition:"background .2s, color .2s"} }, label))),
           h("div",{style:{display:"flex",gap:20}},
             [
-              // 运行中主按钮即「放弃」；重置隐藏，让放弃成为唯一出口
+              // 只有两条路：开始，或放弃。闲置态无需重置——那时 timeLeft 恒等于 total
               timer.running
-                ? { onClick:handleResetClick, label:"放弃", bg:DANGER, fg:"#fff", icon:h(Icon,{name:"X",size:21,color:"#fff"}) }
+                ? { onClick:handleAbandonClick, label:"放弃", bg:DANGER, fg:"#fff", icon:h(Icon,{name:"X",size:21,color:"#fff"}) }
                 : { onClick:togglePlay, label:"开始", bg:BTN, fg:TEXT_MAIN, icon:h(Icon,{name:"Play",size:20,style:{marginLeft:2}}) },
-              !timer.running && { onClick:handleResetClick, label:"重置", bg:BTN, fg:TEXT_MAIN, icon:h(Icon,{name:"RotateCcw",size:19}) },
-            ].filter(Boolean).map(({onClick,label,icon,bg,fg},i)=>
+            ].map(({onClick,label,icon,bg,fg})=>
               h("button",{ key:label, onClick, "aria-label":label, className:"btn-press",
                 style:{width:52,height:52,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:bg,color:fg,transition:"background .2s"} }, icon)),
             // 画中画按钮 — 尺寸/颜色/风格与其他按钮保持一致
@@ -831,15 +828,15 @@
           pipWindow.document.body
         ),
 
-        showResetConfirm && h("div",{onClick:cancelReset,style:{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",zIndex:1000}},
+        showAbandonConfirm && h("div",{onClick:cancelAbandon,style:{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",zIndex:1000}},
           h("div",{onClick:e=>e.stopPropagation(),style:{borderRadius:16,padding:24,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:CARD,width:280,border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 8px 40px rgba(0,0,0,0.5)"}},
-            h("div",{style:{fontSize:32}}, timer.running?"🥺":"⏱️"),
+            h("div",{style:{fontSize:32}},"🥺"),
             h("div",{style:{textAlign:"center"}},
-              h("div",{style:{color:TEXT_MAIN,fontWeight:700,fontSize:16,marginBottom:6}}, timer.running?"确定要放弃这个番薯钟吗？":"确定要重置吗？"),
-              h("div",{style:{color:TEXT_DIM,fontSize:13}}, timer.running?"已专注的时间会记为「已放弃」":"当前进度将会清空")),
+              h("div",{style:{color:TEXT_MAIN,fontWeight:700,fontSize:16,marginBottom:6}},"确定要放弃这个番薯钟吗？"),
+              h("div",{style:{color:TEXT_DIM,fontSize:13}},"已专注的时间会记为「已放弃」")),
             h("div",{style:{display:"flex",gap:12,width:"100%"}},
-              h("button",{onClick:cancelReset,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:BTN,color:TEXT_DIM,fontSize:14}}, timer.running?"继续专注":"取消"),
-              h("button",{onClick:confirmReset,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:timer.running?DANGER:ORANGE,color:"#fff",fontSize:14}}, timer.running?"确认放弃":"确认重置"))))
+              h("button",{onClick:cancelAbandon,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:BTN,color:TEXT_DIM,fontSize:14}},"继续专注"),
+              h("button",{onClick:confirmAbandon,style:{flex:1,padding:"8px 0",borderRadius:12,fontWeight:500,background:DANGER,color:"#fff",fontSize:14}},"确认放弃"))))
       );
     }
  

@@ -543,7 +543,7 @@
         h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"7px 8px 7px 16px"}},
           h("input",{ type:"text", value, maxLength:60, onChange:e=>onChange(e.target.value),
             onKeyDown:e=>{ if(e.key==="Enter") onAdd(); },
-            placeholder:"记下刚完成的一件事…",
+            placeholder:"完成了什么？记下来！",
             style:{ flex:1,minWidth:0,padding:"11px 0",background:"transparent",border:"none",outline:"none",color:TEXT_MAIN,fontSize:15,fontFamily:FONT } }),
           h("button",{ onClick:onAdd, className:"btn-press",
             style:{padding:"9px 18px",borderRadius:10,fontWeight:500,background:BTN,color:TEXT_MAIN,fontSize:14,whiteSpace:"nowrap"} }, "记下")),

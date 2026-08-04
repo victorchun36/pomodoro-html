@@ -846,9 +846,9 @@
               h("div",null, h("div",{style:dimXS},"本次完成的番薯钟数"), h("div",{style:statNum}, count))),
             h("div",{style:{textAlign:"right"}},
               h("div",{style:dimXS},"总时长"), h("div",{style:{...statNum,whiteSpace:"nowrap"}}, fmtTotalCN(totalMin)))),
+          h(NoiseSelector,{ mode, noiseType, volume, onChangeNoise:changeNoise, onVolume:setVolume, onToggleSliderMute:toggleSliderMute }),
           h(DurationSettings,{ workStr, breakStr,
             onWorkChange, onBreakChange, onWorkBlur:()=>setWorkStr(String(workMin)), onBreakBlur:()=>setBreakStr(String(breakMin)), onPreset:applyPreset }),
-          h(NoiseSelector,{ mode, noiseType, volume, onChangeNoise:changeNoise, onVolume:setVolume, onToggleSliderMute:toggleSliderMute }),
           h(HistoryPanel,{ history, show:showHistory, onToggle:()=>{ audio.playClick(); setShowHistory(s=>!s); }, onClear:clearHistory })
         ),
         
